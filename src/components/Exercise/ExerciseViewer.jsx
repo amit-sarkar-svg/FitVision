@@ -1,4 +1,4 @@
-import { Suspense, useState } from 'react'
+import { memo, Suspense, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Bone, Route, Layers } from 'lucide-react'
 import Card from '../UI/Card'
@@ -6,6 +6,7 @@ import ExerciseControls from './ExerciseControls'
 import HumanModel from './HumanModel'
 import CameraController from './CameraController'
 import { ModelErrorBoundary, ModelErrorState, ModelLoadingState } from './ModelLoader'
+import { CanvasDiagnostics, log3DDiagnostic, set3DDiagnosticState } from './ViewerDiagnostics'
 
 const overlayControls = [
   { id: 'muscles', label: 'Muscles', icon: Layers },
@@ -74,13 +75,28 @@ function ExercisePlaceholder({ mode, exerciseName }) {
   )
 }
 
-function ModelCanvas({ cameraAngle }) {
+const canvasCamera = { position: [0, 0.15, 7.2], fov: 34 }
+const canvasDpr = [1, 1.75]
+const canvasGl = { antialias: true, alpha: true }
+
+const ModelCanvas = memo(function ModelCanvas({ cameraAngle }) {
+  useEffect(() => {
+    log3DDiagnostic('ModelCanvas mounted')
+    return () => log3DDiagnostic('ModelCanvas unmounted')
+  }, [])
+
   return (
     <Canvas
-      camera={{ position: [0, 0.15, 7.2], fov: 34 }}
-      dpr={[1, 1.75]}
-      gl={{ antialias: true, alpha: true }}
+      camera={canvasCamera}
+      dpr={canvasDpr}
+      gl={canvasGl}
       className="absolute inset-0"
+      onCreated={({ gl, camera }) => {
+        log3DDiagnostic('Canvas onCreated', {
+          renderer: gl.constructor.name,
+          cameraPosition: camera.position.toArray(),
+        })
+      }}
     >
       <color attach="background" args={['#121722']} />
       <hemisphereLight args={['#dce9ff', '#182335', 1.35]} />
@@ -91,13 +107,15 @@ function ModelCanvas({ cameraAngle }) {
         <HumanModel />
       </Suspense>
       <CameraController preset={cameraAngle} />
+      <CanvasDiagnostics />
     </Canvas>
   )
-}
+})
 
 export default function ExerciseViewer({
   mode = '3d',
   cameraAngle,
+  animationSpeed,
   exerciseName,
   isPlaying,
   currentTime,
@@ -110,6 +128,17 @@ export default function ExerciseViewer({
   viewerRef,
 }) {
   const [activeOverlay, setActiveOverlay] = useState('muscles')
+
+  useEffect(() => {
+    log3DDiagnostic('ExerciseViewer mounted')
+    return () => log3DDiagnostic('ExerciseViewer unmounted')
+  }, [])
+
+  useEffect(() => {
+    const viewerState = { viewMode: mode, cameraAngle, activeOverlay, animationSpeed }
+    set3DDiagnosticState(viewerState)
+    log3DDiagnostic('ExerciseViewer UI state changed', viewerState)
+  }, [activeOverlay, animationSpeed, cameraAngle, mode])
 
   return (
     <Card padding={false} className="overflow-hidden">

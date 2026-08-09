@@ -71,6 +71,7 @@ export default function ExerciseDetails() {
           <ExerciseViewer
             mode={viewMode}
             cameraAngle={cameraAngle}
+            animationSpeed={speed}
             exerciseName={exercise.name}
             isPlaying={isPlaying}
             currentTime={currentTime}

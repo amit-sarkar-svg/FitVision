@@ -1,5 +1,6 @@
 import { Html } from '@react-three/drei'
 import React from 'react'
+import { log3DDiagnostic } from './ViewerDiagnostics'
 
 export function ModelLoadingState() {
   return (
@@ -15,7 +16,7 @@ export function ModelLoadingState() {
 export function ModelErrorState() {
   return (
     <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-[#121722] text-center">
-      <p className="text-sm font-medium text-white">Unable to load 3D model</p>
+      <p className="text-sm font-medium text-white">3D model unavailable</p>
       <p className="text-xs text-gray-500">Please refresh the page and try again.</p>
     </div>
   )
@@ -29,6 +30,15 @@ export class ModelErrorBoundary extends React.Component {
 
   static getDerivedStateFromError() {
     return { hasError: true }
+  }
+
+  componentDidCatch(error, errorInfo) {
+    log3DDiagnostic('3D scene error boundary caught an error', {
+      message: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+    })
+    console.error('[FitVision 3D] 3D scene error boundary caught an error', error)
   }
 
   render() {
