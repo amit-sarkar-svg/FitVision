@@ -55,10 +55,15 @@ export default function ModelSelector({ selectedModel, onSelectModel }) {
         {['male', 'female'].map((tab) => (
           <button
             key={tab}
-            onClick={() => setGenderTab(tab)}
+            onClick={() => tab === 'male' && setGenderTab(tab)}
+            disabled={tab === 'female'}
             className={clsx(
               'flex-1 py-1.5 text-xs font-medium rounded-lg capitalize transition-all',
-              genderTab === tab ? 'bg-accent text-surface' : 'text-gray-400 hover:text-white',
+              tab === 'female'
+                ? 'cursor-not-allowed text-gray-600'
+                : genderTab === tab
+                  ? 'bg-accent text-surface'
+                  : 'text-gray-400 hover:text-white',
             )}
           >
             {tab}

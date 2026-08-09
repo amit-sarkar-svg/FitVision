@@ -70,6 +70,7 @@ export default function ExerciseDetails() {
         <div className="space-y-4 min-w-0">
           <ExerciseViewer
             mode={viewMode}
+            cameraAngle={cameraAngle}
             exerciseName={exercise.name}
             isPlaying={isPlaying}
             currentTime={currentTime}

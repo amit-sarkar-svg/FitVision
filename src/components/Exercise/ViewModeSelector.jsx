@@ -18,7 +18,8 @@ export default function ViewModeSelector({ mode, onModeChange }) {
             size="sm"
             className="flex-1"
             active={mode === id}
-            onClick={() => onModeChange(id)}
+            onClick={() => id === '3d' && onModeChange(id)}
+            disabled={id === 'video'}
           >
             {label}
           </Button>

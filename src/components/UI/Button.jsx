@@ -1,4 +1,4 @@
-import { clsx } from '../utils/clsx'
+import { clsx } from '../../utils/clsx'
 
 const variants = {
   primary: 'bg-accent text-surface font-semibold hover:bg-accent-bright shadow-glow',

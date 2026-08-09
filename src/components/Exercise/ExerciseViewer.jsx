@@ -1,8 +1,11 @@
-import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { Suspense, useState } from 'react'
+import { Canvas } from '@react-three/fiber'
 import { Bone, Route, Layers } from 'lucide-react'
 import Card from '../UI/Card'
 import ExerciseControls from './ExerciseControls'
+import HumanModel from './HumanModel'
+import CameraController from './CameraController'
+import { ModelErrorBoundary, ModelErrorState, ModelLoadingState } from './ModelLoader'
 
 const overlayControls = [
   { id: 'muscles', label: 'Muscles', icon: Layers },
@@ -71,8 +74,30 @@ function ExercisePlaceholder({ mode, exerciseName }) {
   )
 }
 
+function ModelCanvas({ cameraAngle }) {
+  return (
+    <Canvas
+      camera={{ position: [0, 0.15, 7.2], fov: 34 }}
+      dpr={[1, 1.75]}
+      gl={{ antialias: true, alpha: true }}
+      className="absolute inset-0"
+    >
+      <color attach="background" args={['#121722']} />
+      <hemisphereLight args={['#dce9ff', '#182335', 1.35]} />
+      <directionalLight position={[4.5, 6, 5]} intensity={2.2} color="#fff4e5" />
+      <directionalLight position={[-5, 2, 3]} intensity={1.05} color="#9cbcff" />
+      <directionalLight position={[1, 4, -5]} intensity={1.6} color="#86f7bd" />
+      <Suspense fallback={<ModelLoadingState />}>
+        <HumanModel />
+      </Suspense>
+      <CameraController preset={cameraAngle} />
+    </Canvas>
+  )
+}
+
 export default function ExerciseViewer({
   mode = '3d',
+  cameraAngle,
   exerciseName,
   isPlaying,
   currentTime,
@@ -92,7 +117,13 @@ export default function ExerciseViewer({
         ref={viewerRef}
         className="relative aspect-video bg-gradient-to-br from-[#1a1f2e] to-[#0d1117] min-h-[280px] sm:min-h-[360px]"
       >
-        <ExercisePlaceholder mode={mode} exerciseName={exerciseName} />
+        {mode === '3d' ? (
+          <ModelErrorBoundary fallback={<ModelErrorState />}>
+            <ModelCanvas cameraAngle={cameraAngle} />
+          </ModelErrorBoundary>
+        ) : (
+          <ExercisePlaceholder mode={mode} exerciseName={exerciseName} />
+        )}
 
         {/* Live muscle highlight indicator */}
         <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface/80 backdrop-blur-sm border border-surface-border">
