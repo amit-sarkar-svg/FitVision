@@ -100,6 +100,7 @@ export default function ExerciseDetails() {
           <TargetMuscles
             primaryMuscles={exercise.primaryMuscles}
             secondaryMuscles={exercise.secondaryMuscles}
+            exerciseId={id}
           />
           <MusclesWorked
             primaryMuscles={exercise.primaryMuscles}
@@ -120,6 +121,7 @@ export default function ExerciseDetails() {
         <TargetMuscles
           primaryMuscles={exercise.primaryMuscles}
           secondaryMuscles={exercise.secondaryMuscles}
+          exerciseId={id}
         />
         <MusclesWorked
           primaryMuscles={exercise.primaryMuscles}

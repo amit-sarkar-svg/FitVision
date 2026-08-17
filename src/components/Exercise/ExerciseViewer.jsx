@@ -1,4 +1,4 @@
-import { memo, Suspense, useEffect, useState } from 'react'
+import { memo, Suspense, useCallback, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { Bone, Route, Layers } from 'lucide-react'
 import Card from '../UI/Card'
@@ -75,11 +75,14 @@ function ExercisePlaceholder({ mode, exerciseName }) {
   )
 }
 
-const canvasCamera = { position: [0, 0.15, 7.2], fov: 34 }
+const canvasCamera = { position: [0, 0, 9], fov: 34 }
 const canvasDpr = [1, 1.75]
 const canvasGl = { antialias: true, alpha: true }
 
 const ModelCanvas = memo(function ModelCanvas({ cameraAngle }) {
+  const [frame, setFrame] = useState(null)
+  const handleFrameReady = useCallback((nextFrame) => setFrame(nextFrame), [])
+
   useEffect(() => {
     log3DDiagnostic('ModelCanvas mounted')
     return () => log3DDiagnostic('ModelCanvas unmounted')
@@ -104,9 +107,9 @@ const ModelCanvas = memo(function ModelCanvas({ cameraAngle }) {
       <directionalLight position={[-5, 2, 3]} intensity={1.05} color="#9cbcff" />
       <directionalLight position={[1, 4, -5]} intensity={1.6} color="#86f7bd" />
       <Suspense fallback={<ModelLoadingState />}>
-        <HumanModel />
+        <HumanModel onFrameReady={handleFrameReady} />
       </Suspense>
-      <CameraController preset={cameraAngle} />
+      <CameraController preset={cameraAngle} frame={frame} />
       <CanvasDiagnostics />
     </Canvas>
   )
