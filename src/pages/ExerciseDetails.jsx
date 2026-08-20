@@ -1,60 +1,50 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useParams, Navigate } from 'react-router-dom'
-import { motion } from 'framer-motion'
-import { Plus } from 'lucide-react'
-import { getExerciseById } from '../data/exercises'
-import ExerciseHeader from '../components/Exercise/ExerciseHeader'
-import ExerciseViewer from '../components/Exercise/ExerciseViewer'
-import ModelSelector from '../components/Exercise/ModelSelector'
-import ViewModeSelector from '../components/Exercise/ViewModeSelector'
-import AnimationSpeed from '../components/Exercise/AnimationSpeed'
-import CameraControls from '../components/Exercise/CameraControls'
-import ExerciseTips from '../components/Exercise/ExerciseTips'
-import TargetMuscles from '../components/Exercise/TargetMuscles'
-import MusclesWorked from '../components/Exercise/MusclesWorked'
-import RelatedExercises from '../components/Exercise/RelatedExercises'
-import FullscreenViewer from '../components/Exercise/FullscreenViewer'
-import Button from '../components/UI/Button'
+import { useState, useRef, useCallback } from "react";
+import { useParams, Navigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Plus } from "lucide-react";
+import { getExerciseById } from "../data/exercises";
+import ExerciseHeader from "../components/Exercise/ExerciseHeader";
+import ExerciseViewer from "../components/Exercise/ExerciseViewer";
+import ModelSelector from "../components/Exercise/ModelSelector";
+import AnimationSpeed from "../components/Exercise/AnimationSpeed";
+import CameraControls from "../components/Exercise/CameraControls";
+import ExerciseTips from "../components/Exercise/ExerciseTips";
+import TargetMuscles from "../components/Exercise/TargetMuscles";
+import MusclesWorked from "../components/Exercise/MusclesWorked";
+import RelatedExercises from "../components/Exercise/RelatedExercises";
+import Button from "../components/UI/Button";
+
+const exerciseVideoSources = {
+  front: "/videos/exercises/dumbbell-bench-press/front.mp4",
+  side: "/videos/exercises/dumbbell-bench-press/side.mp4",
+  top: "/videos/exercises/dumbbell-bench-press/top.mp4",
+};
 
 export default function ExerciseDetails() {
-  const { id } = useParams()
-  const exercise = getExerciseById(id)
-  const viewerRef = useRef(null)
+  const { id } = useParams();
+  const exercise = getExerciseById(id);
+  const hasExerciseVideo = id === "dumbbell-bench-press";
+  const viewerRef = useRef(null);
+  const videoRef = useRef(null);
 
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [viewMode, setViewMode] = useState('3d')
-  const [selectedModel, setSelectedModel] = useState('male-fitness')
-  const [speed, setSpeed] = useState('1.0x')
-  const [cameraAngle, setCameraAngle] = useState('front')
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [currentTime, setCurrentTime] = useState(6)
-  const [volume, setVolume] = useState(0.8)
-  const [isFullscreen, setIsFullscreen] = useState(false)
-
-  const duration = exercise?.duration ?? 18
-
-  useEffect(() => {
-    if (!isPlaying) return
-
-    const interval = setInterval(() => {
-      setCurrentTime((t) => {
-        if (t >= duration) {
-          setIsPlaying(false)
-          return duration
-        }
-        return t + 1
-      })
-    }, 1000)
-
-    return () => clearInterval(interval)
-  }, [isPlaying, duration])
+  const [isFavorite, setIsFavorite] = useState(false);
+  const [viewMode, setViewMode] = useState(() =>
+    hasExerciseVideo ? "video" : "3d",
+  );
+  const [selectedModel, setSelectedModel] = useState("male-fitness");
+  const [speed, setSpeed] = useState("1.0x");
+  const [cameraAngle, setCameraAngle] = useState("front");
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(0);
 
   const handleFullscreen = useCallback(() => {
-    setIsFullscreen(true)
-  }, [])
+    videoRef.current?.requestFullscreen();
+  }, []);
 
   if (!exercise) {
-    return <Navigate to="/exercises" replace />
+    return <Navigate to="/exercises" replace />;
   }
 
   return (
@@ -77,21 +67,37 @@ export default function ExerciseDetails() {
             currentTime={currentTime}
             duration={duration}
             volume={volume}
-            onPlayPause={() => setIsPlaying((p) => !p)}
-            onSeek={setCurrentTime}
-            onVolumeChange={setVolume}
+            onPlayPause={() => videoRef.current?.togglePlay()}
+            onSeek={(time) => videoRef.current?.seek(time)}
+            onVolumeChange={(nextVolume) =>
+              videoRef.current?.setVolume(nextVolume)
+            }
             onFullscreen={handleFullscreen}
             viewerRef={viewerRef}
+            videoRef={videoRef}
+            videoSource={
+              hasExerciseVideo ? exerciseVideoSources[cameraAngle] : undefined
+            }
+            videoPlaybackRate={Number.parseFloat(speed)}
+            onVideoPlayStateChange={setIsPlaying}
+            onVideoTimeChange={setCurrentTime}
+            onVideoDurationChange={setDuration}
+            onVideoVolumeChange={setVolume}
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <ModelSelector selectedModel={selectedModel} onSelectModel={setSelectedModel} />
-            <ViewModeSelector mode={viewMode} onModeChange={setViewMode} />
-            <AnimationSpeed speed={speed} onSpeedChange={setSpeed} />
-            <CameraControls angle={cameraAngle} onAngleChange={setCameraAngle} />
-            <div className="sm:col-span-2">
+            <div className="space-y-4">
+              <ModelSelector
+                selectedModel={selectedModel}
+                onSelectModel={setSelectedModel}
+              />
+              <AnimationSpeed speed={speed} onSpeedChange={setSpeed} />
               <ExerciseTips tip={exercise.tips} />
             </div>
+            <CameraControls
+              angle={cameraAngle}
+              onAngleChange={setCameraAngle}
+            />
           </div>
         </div>
 
@@ -136,21 +142,6 @@ export default function ExerciseDetails() {
           Add to Workout Plan
         </Button>
       </div>
-
-      <FullscreenViewer
-        isOpen={isFullscreen}
-        onClose={() => setIsFullscreen(false)}
-        exercise={exercise}
-        mode={viewMode}
-        isPlaying={isPlaying}
-        currentTime={currentTime}
-        duration={duration}
-        volume={volume}
-        speed={speed}
-        onPlayPause={() => setIsPlaying((p) => !p)}
-        onSeek={setCurrentTime}
-        onVolumeChange={setVolume}
-      />
     </div>
-  )
+  );
 }

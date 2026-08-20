@@ -7,7 +7,7 @@ import { log3DDiagnostic, set3DDiagnosticState } from './ViewerDiagnostics'
 const PRESETS = {
   front: new THREE.Vector3(0, 0.02, 1),
   side: new THREE.Vector3(1, 0.02, 0),
-  top45: new THREE.Vector3(1, 0.85, 1),
+  top: new THREE.Vector3(1, 0.85, 1),
 }
 
 function getFitDistance(size, direction, camera) {

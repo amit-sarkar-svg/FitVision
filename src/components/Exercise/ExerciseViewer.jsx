@@ -1,18 +1,12 @@
 import { memo, Suspense, useCallback, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
-import { Bone, Route, Layers } from 'lucide-react'
 import Card from '../UI/Card'
 import ExerciseControls from './ExerciseControls'
+import ExerciseVideo from './ExerciseVideo'
 import HumanModel from './HumanModel'
 import CameraController from './CameraController'
 import { ModelErrorBoundary, ModelErrorState, ModelLoadingState } from './ModelLoader'
 import { CanvasDiagnostics, log3DDiagnostic, set3DDiagnosticState } from './ViewerDiagnostics'
-
-const overlayControls = [
-  { id: 'muscles', label: 'Muscles', icon: Layers },
-  { id: 'skeleton', label: 'Skeleton', icon: Bone },
-  { id: 'motion', label: 'Motion Path', icon: Route },
-]
 
 function ExercisePlaceholder({ mode, exerciseName }) {
   return (
@@ -129,19 +123,24 @@ export default function ExerciseViewer({
   onVolumeChange,
   onFullscreen,
   viewerRef,
+  videoRef,
+  videoSource,
+  videoPlaybackRate,
+  onVideoPlayStateChange,
+  onVideoTimeChange,
+  onVideoDurationChange,
+  onVideoVolumeChange,
 }) {
-  const [activeOverlay, setActiveOverlay] = useState('muscles')
-
   useEffect(() => {
     log3DDiagnostic('ExerciseViewer mounted')
     return () => log3DDiagnostic('ExerciseViewer unmounted')
   }, [])
 
   useEffect(() => {
-    const viewerState = { viewMode: mode, cameraAngle, activeOverlay, animationSpeed }
+    const viewerState = { viewMode: mode, cameraAngle, animationSpeed }
     set3DDiagnosticState(viewerState)
     log3DDiagnostic('ExerciseViewer UI state changed', viewerState)
-  }, [activeOverlay, animationSpeed, cameraAngle, mode])
+  }, [animationSpeed, cameraAngle, mode])
 
   return (
     <Card padding={false} className="overflow-hidden">
@@ -154,32 +153,17 @@ export default function ExerciseViewer({
             <ModelCanvas cameraAngle={cameraAngle} />
           </ModelErrorBoundary>
         ) : (
-          <ExercisePlaceholder mode={mode} exerciseName={exerciseName} />
+          <ExerciseVideo
+            ref={videoRef}
+            source={videoSource}
+            playbackRate={videoPlaybackRate}
+            volume={volume}
+            onPlayStateChange={onVideoPlayStateChange}
+            onTimeChange={onVideoTimeChange}
+            onDurationChange={onVideoDurationChange}
+            onVolumeChange={onVideoVolumeChange}
+          />
         )}
-
-        {/* Live muscle highlight indicator */}
-        <div className="absolute top-4 left-4 flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface/80 backdrop-blur-sm border border-surface-border">
-          <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-          <span className="text-xs font-medium text-white">Live Muscle Highlight</span>
-        </div>
-
-        {/* Overlay controls */}
-        <div className="absolute top-4 right-4 flex flex-col gap-1.5">
-          {overlayControls.map(({ id, label, icon: Icon }) => (
-            <button
-              key={id}
-              onClick={() => setActiveOverlay(id)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition-all backdrop-blur-sm border ${
-                activeOverlay === id
-                  ? 'bg-accent/20 border-accent/50 text-accent'
-                  : 'bg-surface/70 border-surface-border text-gray-400 hover:text-white'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">{label}</span>
-            </button>
-          ))}
-        </div>
       </div>
 
       <ExerciseControls

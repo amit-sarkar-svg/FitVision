@@ -1,24 +1,24 @@
-import { Box } from 'lucide-react'
-import Card from '../UI/Card'
-import Button from '../UI/Button'
+import { Box } from "lucide-react";
+import Card from "../UI/Card";
+import Button from "../UI/Button";
 
 const angles = [
-  { id: 'front', label: 'Front', icon: Box },
-  { id: 'side', label: 'Side', icon: Box },
-  { id: 'top45', label: 'Top 45°', icon: Box },
-]
+  { id: "front", label: "Front", icon: Box },
+  { id: "side", label: "Side", icon: Box },
+  { id: "top", label: "Top", icon: Box },
+];
 
 export default function CameraControls({ angle, onAngleChange }) {
   return (
-    <Card>
+    <Card className="flex flex-col">
       <h3 className="text-sm font-semibold text-white mb-3">Camera Angle</h3>
-      <div className="grid grid-cols-3 gap-2">
+      <div className="flex flex-1 flex-col gap-2">
         {angles.map(({ id, label }) => (
           <Button
             key={id}
-            variant={angle === id ? 'primary' : 'secondary'}
+            variant={angle === id ? "primary" : "secondary"}
             size="sm"
-            className="flex-col gap-1 py-3"
+            className="flex-1 flex-col gap-1 py-3"
             onClick={() => onAngleChange(id)}
           >
             <div className="w-6 h-6 border border-current rounded opacity-60" />
@@ -27,5 +27,5 @@ export default function CameraControls({ angle, onAngleChange }) {
         ))}
       </div>
     </Card>
-  )
+  );
 }

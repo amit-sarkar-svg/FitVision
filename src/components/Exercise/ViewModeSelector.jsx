@@ -6,7 +6,7 @@ const modes = [
   { id: 'video', label: 'Real Video' },
 ]
 
-export default function ViewModeSelector({ mode, onModeChange }) {
+export default function ViewModeSelector({ mode, onModeChange, videoOnly = false }) {
   return (
     <Card>
       <h3 className="text-sm font-semibold text-white mb-3">View Mode</h3>
@@ -18,8 +18,8 @@ export default function ViewModeSelector({ mode, onModeChange }) {
             size="sm"
             className="flex-1"
             active={mode === id}
-            onClick={() => id === '3d' && onModeChange(id)}
-            disabled={id === 'video'}
+            onClick={() => (videoOnly ? id === 'video' : id === '3d') && onModeChange(id)}
+            disabled={videoOnly ? id === '3d' : id === 'video'}
           >
             {label}
           </Button>
