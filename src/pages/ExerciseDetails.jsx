@@ -13,6 +13,7 @@ import TargetMuscles from "../components/Exercise/TargetMuscles";
 import MusclesWorked from "../components/Exercise/MusclesWorked";
 import RelatedExercises from "../components/Exercise/RelatedExercises";
 import Button from "../components/UI/Button";
+import AddToPlanModal from "../components/Workout/AddToPlanModal";
 
 const exerciseVideoSources = {
   front: "/videos/exercises/dumbbell-bench-press/front.mp4",
@@ -28,6 +29,7 @@ export default function ExerciseDetails() {
   const videoRef = useRef(null);
 
   const [isFavorite, setIsFavorite] = useState(false);
+  const [isAddToPlanOpen, setIsAddToPlanOpen] = useState(false);
   const [viewMode, setViewMode] = useState(() =>
     hasExerciseVideo ? "video" : "3d",
   );
@@ -114,7 +116,7 @@ export default function ExerciseDetails() {
           />
           <RelatedExercises exercises={exercise.relatedExercises} />
           <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
-            <Button size="lg" className="w-full">
+            <Button size="lg" className="w-full" onClick={() => setIsAddToPlanOpen(true)}>
               <Plus className="w-5 h-5" />
               Add to Workout Plan
             </Button>
@@ -137,11 +139,18 @@ export default function ExerciseDetails() {
 
       <div className="mt-4 xl:hidden space-y-4">
         <RelatedExercises exercises={exercise.relatedExercises} />
-        <Button size="lg" className="w-full">
+        <Button size="lg" className="w-full" onClick={() => setIsAddToPlanOpen(true)}>
           <Plus className="w-5 h-5" />
           Add to Workout Plan
         </Button>
       </div>
+
+      {/* Add to Workout Plan Modal */}
+      <AddToPlanModal
+        isOpen={isAddToPlanOpen}
+        onClose={() => setIsAddToPlanOpen(false)}
+        exercise={exercise}
+      />
     </div>
   );
 }

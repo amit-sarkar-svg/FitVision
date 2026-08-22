@@ -4,9 +4,12 @@ import AppLayout from './components/Layout/AppLayout'
 import Home from './pages/Home'
 import Dashboard from './pages/Dashboard'
 import Exercises from './pages/Exercises'
+import { WorkoutProvider } from './context/WorkoutContext'
 
 const ExerciseDetails = lazy(() => import('./pages/ExerciseDetails'))
 const WorkoutPlans = lazy(() => import('./pages/WorkoutPlans'))
+const WorkoutPlanDetails = lazy(() => import('./pages/WorkoutPlanDetails'))
+const WorkoutSession = lazy(() => import('./pages/WorkoutSession'))
 const DietNutrition = lazy(() => import('./pages/DietNutrition'))
 const BMICalculator = lazy(() => import('./pages/BMICalculator'))
 const ProgressTracker = lazy(() => import('./pages/ProgressTracker'))
@@ -24,22 +27,26 @@ function PageLoader() {
 
 export default function App() {
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route element={<AppLayout />}>
-          <Route index element={<Home />} />
-          <Route path="dashboard" element={<Dashboard />} />
-          <Route path="exercises" element={<Exercises />} />
-          <Route path="exercises/:id" element={<ExerciseDetails />} />
-          <Route path="workout-plans" element={<WorkoutPlans />} />
-          <Route path="diet-nutrition" element={<DietNutrition />} />
-          <Route path="bmi" element={<BMICalculator />} />
-          <Route path="progress" element={<ProgressTracker />} />
-          <Route path="favorites" element={<Favorites />} />
-          <Route path="tips" element={<TipsArticles />} />
-          <Route path="settings" element={<SettingsPage />} />
-        </Route>
-      </Routes>
-    </Suspense>
+    <WorkoutProvider>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route element={<AppLayout />}>
+            <Route index element={<Home />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="exercises" element={<Exercises />} />
+            <Route path="exercises/:id" element={<ExerciseDetails />} />
+            <Route path="workout-plans" element={<WorkoutPlans />} />
+            <Route path="workout-plans/:id" element={<WorkoutPlanDetails />} />
+            <Route path="workout-plans/:id/session" element={<WorkoutSession />} />
+            <Route path="diet-nutrition" element={<DietNutrition />} />
+            <Route path="bmi" element={<BMICalculator />} />
+            <Route path="progress" element={<ProgressTracker />} />
+            <Route path="favorites" element={<Favorites />} />
+            <Route path="tips" element={<TipsArticles />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+        </Routes>
+      </Suspense>
+    </WorkoutProvider>
   )
 }
