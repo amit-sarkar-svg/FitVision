@@ -14,6 +14,7 @@ import MusclesWorked from "../components/Exercise/MusclesWorked";
 import RelatedExercises from "../components/Exercise/RelatedExercises";
 import Button from "../components/UI/Button";
 import AddToPlanModal from "../components/Workout/AddToPlanModal";
+import { useWorkout } from "../context/WorkoutContext";
 
 const exerciseVideoSources = {
   front: "/videos/exercises/dumbbell-bench-press/front.mp4",
@@ -24,11 +25,13 @@ const exerciseVideoSources = {
 export default function ExerciseDetails() {
   const { id } = useParams();
   const exercise = getExerciseById(id);
+  const { isFavorite: checkIsFavorite, toggleFavorite, showToast } = useWorkout();
+  const isFavorite = checkIsFavorite(id);
+
   const hasExerciseVideo = id === "dumbbell-bench-press";
   const viewerRef = useRef(null);
   const videoRef = useRef(null);
 
-  const [isFavorite, setIsFavorite] = useState(false);
   const [isAddToPlanOpen, setIsAddToPlanOpen] = useState(false);
   const [viewMode, setViewMode] = useState(() =>
     hasExerciseVideo ? "video" : "3d",
@@ -45,6 +48,19 @@ export default function ExerciseDetails() {
     videoRef.current?.requestFullscreen();
   }, []);
 
+  const handleToggleFavorite = () => {
+    if (!exercise) return;
+    const res = toggleFavorite(id);
+    if (res.success) {
+      showToast(
+        res.isFavorite
+          ? `Added "${exercise.name}" to Favorites`
+          : `Removed "${exercise.name}" from Favorites`,
+        'success'
+      );
+    }
+  };
+
   if (!exercise) {
     return <Navigate to="/exercises" replace />;
   }
@@ -54,7 +70,8 @@ export default function ExerciseDetails() {
       <ExerciseHeader
         exercise={exercise}
         isFavorite={isFavorite}
-        onToggleFavorite={() => setIsFavorite((f) => !f)}
+        onToggleFavorite={handleToggleFavorite}
+        onAddToPlan={() => setIsAddToPlanOpen(true)}
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_300px] gap-6">

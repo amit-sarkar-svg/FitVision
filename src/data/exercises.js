@@ -66,7 +66,38 @@ export const muscleLabels = {
 };
 
 export function getExerciseById(id) {
-  return exercises.find((exercise) => exercise.id === id);
+  if (!id) return undefined;
+  const direct = exercises.find((exercise) => exercise.id === id);
+  if (direct) return direct;
+
+  // Search within related exercises as well
+  for (const ex of exercises) {
+    if (ex.relatedExercises) {
+      const rel = ex.relatedExercises.find((r) => r.id === id);
+      if (rel) {
+        return {
+          id: rel.id,
+          name: rel.name,
+          category: rel.category || "Chest",
+          difficulty: "Intermediate",
+          cover: `/images/exercises/${rel.id}-cover.png`,
+          primaryMuscles: ["Pectoralis Major"],
+          secondaryMuscles: ["Anterior Deltoid", "Triceps Brachii"],
+          description: `A targeted ${rel.name} exercise focused on the chest muscles.`,
+          instructions: [
+            "Position yourself correctly with appropriate resistance",
+            "Engage core and maintain controlled form",
+            "Perform movement through full range of motion",
+            "Repeat for desired reps",
+          ],
+          tips: "Maintain controlled form throughout the movement.",
+          duration: 18,
+        };
+      }
+    }
+  }
+
+  return undefined;
 }
 
 export const modelOptions = {

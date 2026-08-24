@@ -4,7 +4,7 @@ import { motion } from 'framer-motion'
 import Badge from '../UI/Badge'
 import Button from '../UI/Button'
 
-export default function ExerciseHeader({ exercise, isFavorite, onToggleFavorite }) {
+export default function ExerciseHeader({ exercise, isFavorite, onToggleFavorite, onAddToPlan }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -29,18 +29,36 @@ export default function ExerciseHeader({ exercise, isFavorite, onToggleFavorite 
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
-          <Button variant="outline" size="sm" className="hidden sm:inline-flex">
-            <CalendarPlus className="w-4 h-4" />
-            Add to Plan
-          </Button>
+          {onAddToPlan && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onAddToPlan}
+              className="hidden sm:inline-flex"
+            >
+              <CalendarPlus className="w-4 h-4" />
+              Add to Plan
+            </Button>
+          )}
+
           <Button
-            variant="icon"
+            variant="secondary"
+            size="sm"
             onClick={onToggleFavorite}
-            className={isFavorite ? 'text-red-400 border-red-400/30 bg-red-400/10' : ''}
-            aria-label="Toggle favorite"
+            className={`transition-all ${
+              isFavorite
+                ? 'text-red-400 border-red-500/40 bg-red-500/10 hover:bg-red-500/20'
+                : 'text-gray-300 hover:text-white'
+            }`}
+            title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+            aria-label={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
           >
-            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current' : ''}`} />
+            <Heart className={`w-4 h-4 ${isFavorite ? 'fill-current text-red-400' : ''}`} />
+            <span className="hidden sm:inline">
+              {isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+            </span>
           </Button>
+
           <Button variant="icon" aria-label="More options">
             <MoreHorizontal className="w-4 h-4" />
           </Button>

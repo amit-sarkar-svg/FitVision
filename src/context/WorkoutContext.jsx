@@ -14,6 +14,13 @@ import {
   getWorkoutStatistics,
   getWeeklyActivity,
 } from '../utils/workoutHistory'
+import {
+  getFavoriteExerciseIds,
+  addFavoriteExercise as addFavoriteStorage,
+  removeFavoriteExercise as removeFavoriteStorage,
+  toggleFavoriteExercise as toggleFavoriteStorage,
+  isExerciseFavorite as isFavoriteStorage,
+} from '../utils/favoritesStorage'
 import Toast from '../components/UI/Toast'
 
 const WorkoutContext = createContext(null)
@@ -21,6 +28,7 @@ const WorkoutContext = createContext(null)
 export function WorkoutProvider({ children }) {
   const [plans, setPlans] = useState(() => getWorkoutPlans())
   const [history, setHistory] = useState(() => getWorkoutHistory())
+  const [favorites, setFavorites] = useState(() => getFavoriteExerciseIds())
   const [toast, setToast] = useState(null)
 
   const showToast = useCallback((message, type = 'success', title = '') => {
@@ -42,6 +50,10 @@ export function WorkoutProvider({ children }) {
     setHistory(getWorkoutHistory())
   }, [])
 
+  const reloadFavorites = useCallback(() => {
+    setFavorites(getFavoriteExerciseIds())
+  }, [])
+
   useEffect(() => {
     const handlePlansUpdate = () => {
       reloadPlans()
@@ -49,22 +61,29 @@ export function WorkoutProvider({ children }) {
     const handleHistoryUpdate = () => {
       reloadHistory()
     }
+    const handleFavoritesUpdate = () => {
+      reloadFavorites()
+    }
     const handleStorageUpdate = (e) => {
       if (e.key === 'fitvision_workout_plans') reloadPlans()
       if (e.key === 'fitvision_workout_history') reloadHistory()
+      if (e.key === 'fitvision_favorite_exercises') reloadFavorites()
     }
 
     window.addEventListener('fitvision:plans-updated', handlePlansUpdate)
     window.addEventListener('fitvision:history-updated', handleHistoryUpdate)
+    window.addEventListener('fitvision:favorites-updated', handleFavoritesUpdate)
     window.addEventListener('storage', handleStorageUpdate)
 
     return () => {
       window.removeEventListener('fitvision:plans-updated', handlePlansUpdate)
       window.removeEventListener('fitvision:history-updated', handleHistoryUpdate)
+      window.removeEventListener('fitvision:favorites-updated', handleFavoritesUpdate)
       window.removeEventListener('storage', handleStorageUpdate)
     }
-  }, [reloadPlans, reloadHistory])
+  }, [reloadPlans, reloadHistory, reloadFavorites])
 
+  // Workout Plans
   const createPlan = useCallback((data) => {
     const res = createPlanStorage(data)
     if (res.success) {
@@ -101,6 +120,7 @@ export function WorkoutProvider({ children }) {
     return getPlanByIdStorage(planId)
   }, [])
 
+  // Workout History
   const recordWorkoutCompletion = useCallback((workoutData) => {
     const res = saveCompletedWorkoutStorage(workoutData)
     if (res.success) {
@@ -117,11 +137,41 @@ export function WorkoutProvider({ children }) {
     return res
   }, [reloadHistory])
 
+  // Favorites
+  const isFavorite = useCallback((exerciseId) => {
+    return favorites.includes(exerciseId)
+  }, [favorites])
+
+  const addFavorite = useCallback((exerciseId) => {
+    const res = addFavoriteStorage(exerciseId)
+    if (res.success) {
+      reloadFavorites()
+    }
+    return res
+  }, [reloadFavorites])
+
+  const removeFavorite = useCallback((exerciseId) => {
+    const res = removeFavoriteStorage(exerciseId)
+    if (res.success) {
+      reloadFavorites()
+    }
+    return res
+  }, [reloadFavorites])
+
+  const toggleFavorite = useCallback((exerciseId) => {
+    const res = toggleFavoriteStorage(exerciseId)
+    if (res.success) {
+      reloadFavorites()
+    }
+    return res
+  }, [reloadFavorites])
+
   return (
     <WorkoutContext.Provider
       value={{
         plans,
         history,
+        favorites,
         createPlan,
         deletePlan,
         addExercise,
@@ -129,9 +179,14 @@ export function WorkoutProvider({ children }) {
         getPlanById,
         recordWorkoutCompletion,
         clearHistory,
+        isFavorite,
+        addFavorite,
+        removeFavorite,
+        toggleFavorite,
         showToast,
         reloadPlans,
         reloadHistory,
+        reloadFavorites,
       }}
     >
       {children}
