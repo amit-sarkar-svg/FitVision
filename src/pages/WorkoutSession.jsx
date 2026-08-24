@@ -35,13 +35,14 @@ const exerciseVideoSources = {
 export default function WorkoutSession() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getPlanById } = useWorkout()
+  const { getPlanById, recordWorkoutCompletion } = useWorkout()
   const plan = getPlanById(id)
 
   const [currentIndex, setCurrentIndex] = useState(0)
   const [completedIndices, setCompletedIndices] = useState(new Set())
   const [isFinished, setIsFinished] = useState(false)
   const [isExitModalOpen, setIsExitModalOpen] = useState(false)
+  const hasRecordedHistory = useRef(false)
 
   // Video & viewer player state
   const [cameraAngle, setCameraAngle] = useState('front')
@@ -101,7 +102,6 @@ export default function WorkoutSession() {
 
   const isCurrentCompleted = completedIndices.has(currentIndex)
   const isLastExercise = currentIndex === totalExercises - 1
-  const allExercisesCompleted = completedIndices.size === totalExercises
 
   // Determine video availability
   const hasExerciseVideo = Boolean(exerciseVideoSources[currentExercise.id])
@@ -118,6 +118,16 @@ export default function WorkoutSession() {
       setCurrentIndex((prev) => prev + 1)
     } else {
       setIsFinished(true)
+      // Record workout history with duplicate protection
+      if (!hasRecordedHistory.current) {
+        hasRecordedHistory.current = true
+        recordWorkoutCompletion({
+          planId: plan.id,
+          planName: plan.name,
+          exercisesCompleted: nextCompleted.size,
+          totalExercises: totalExercises,
+        })
+      }
     }
   }
 
@@ -126,6 +136,15 @@ export default function WorkoutSession() {
       setCurrentIndex((prev) => prev + 1)
     } else {
       setIsFinished(true)
+      if (!hasRecordedHistory.current) {
+        hasRecordedHistory.current = true
+        recordWorkoutCompletion({
+          planId: plan.id,
+          planName: plan.name,
+          exercisesCompleted: completedIndices.size,
+          totalExercises: totalExercises,
+        })
+      }
     }
   }
 
@@ -140,6 +159,7 @@ export default function WorkoutSession() {
     setCurrentIndex(0)
     setIsFinished(false)
     setCameraAngle('front')
+    hasRecordedHistory.current = false
   }
 
   const handleExitClick = () => {

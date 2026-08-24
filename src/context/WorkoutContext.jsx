@@ -7,12 +7,20 @@ import {
   removeExerciseFromPlan as removeExerciseStorage,
   getWorkoutPlanById as getPlanByIdStorage,
 } from '../utils/workoutStorage'
+import {
+  getWorkoutHistory,
+  saveCompletedWorkout as saveCompletedWorkoutStorage,
+  clearWorkoutHistory as clearWorkoutHistoryStorage,
+  getWorkoutStatistics,
+  getWeeklyActivity,
+} from '../utils/workoutHistory'
 import Toast from '../components/UI/Toast'
 
 const WorkoutContext = createContext(null)
 
 export function WorkoutProvider({ children }) {
   const [plans, setPlans] = useState(() => getWorkoutPlans())
+  const [history, setHistory] = useState(() => getWorkoutHistory())
   const [toast, setToast] = useState(null)
 
   const showToast = useCallback((message, type = 'success', title = '') => {
@@ -30,17 +38,32 @@ export function WorkoutProvider({ children }) {
     setPlans(getWorkoutPlans())
   }, [])
 
+  const reloadHistory = useCallback(() => {
+    setHistory(getWorkoutHistory())
+  }, [])
+
   useEffect(() => {
-    const handleStorageUpdate = () => {
+    const handlePlansUpdate = () => {
       reloadPlans()
     }
-    window.addEventListener('fitvision:plans-updated', handleStorageUpdate)
+    const handleHistoryUpdate = () => {
+      reloadHistory()
+    }
+    const handleStorageUpdate = (e) => {
+      if (e.key === 'fitvision_workout_plans') reloadPlans()
+      if (e.key === 'fitvision_workout_history') reloadHistory()
+    }
+
+    window.addEventListener('fitvision:plans-updated', handlePlansUpdate)
+    window.addEventListener('fitvision:history-updated', handleHistoryUpdate)
     window.addEventListener('storage', handleStorageUpdate)
+
     return () => {
-      window.removeEventListener('fitvision:plans-updated', handleStorageUpdate)
+      window.removeEventListener('fitvision:plans-updated', handlePlansUpdate)
+      window.removeEventListener('fitvision:history-updated', handleHistoryUpdate)
       window.removeEventListener('storage', handleStorageUpdate)
     }
-  }, [reloadPlans])
+  }, [reloadPlans, reloadHistory])
 
   const createPlan = useCallback((data) => {
     const res = createPlanStorage(data)
@@ -78,17 +101,37 @@ export function WorkoutProvider({ children }) {
     return getPlanByIdStorage(planId)
   }, [])
 
+  const recordWorkoutCompletion = useCallback((workoutData) => {
+    const res = saveCompletedWorkoutStorage(workoutData)
+    if (res.success) {
+      reloadHistory()
+    }
+    return res
+  }, [reloadHistory])
+
+  const clearHistory = useCallback(() => {
+    const res = clearWorkoutHistoryStorage()
+    if (res) {
+      reloadHistory()
+    }
+    return res
+  }, [reloadHistory])
+
   return (
     <WorkoutContext.Provider
       value={{
         plans,
+        history,
         createPlan,
         deletePlan,
         addExercise,
         removeExercise,
         getPlanById,
+        recordWorkoutCompletion,
+        clearHistory,
         showToast,
         reloadPlans,
+        reloadHistory,
       }}
     >
       {children}
