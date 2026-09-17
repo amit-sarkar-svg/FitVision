@@ -1,82 +1,3 @@
-const STORAGE_KEY = 'fitvision_workout_history'
-
-/**
- * Get all completed workout history records from localStorage.
- * Returns array sorted by completedAt descending (newest first).
- */
-export function getWorkoutHistory() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (!raw) return []
-    const parsed = JSON.parse(raw)
-    if (!Array.isArray(parsed)) return []
-    return parsed.sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-  } catch (err) {
-    console.error('Failed to load workout history from localStorage:', err)
-    return []
-  }
-}
-
-/**
- * Save an array of workout history records to localStorage.
- */
-export function saveWorkoutHistory(history) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(history))
-    window.dispatchEvent(new CustomEvent('fitvision:history-updated', { detail: history }))
-    return true
-  } catch (err) {
-    console.error('Failed to save workout history to localStorage:', err)
-    return false
-  }
-}
-
-/**
- * Record a completed workout session to history.
- * Prevents accidental duplicate submissions.
- */
-export function saveCompletedWorkout({
-  planId,
-  planName,
-  exercisesCompleted,
-  totalExercises,
-  completedAt = new Date().toISOString(),
-}) {
-  if (!planId || !planName) {
-    return { success: false, error: 'Invalid workout session data' }
-  }
-
-  const history = getWorkoutHistory()
-
-  const newRecord = {
-    id: `history_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-    planId,
-    planName,
-    completedAt,
-    exercisesCompleted: Number(exercisesCompleted) || 0,
-    totalExercises: Number(totalExercises) || Number(exercisesCompleted) || 0,
-  }
-
-  const updatedHistory = [newRecord, ...history]
-  saveWorkoutHistory(updatedHistory)
-
-  return { success: true, record: newRecord }
-}
-
-/**
- * Clear all workout history records.
- */
-export function clearWorkoutHistory() {
-  try {
-    localStorage.removeItem(STORAGE_KEY)
-    window.dispatchEvent(new CustomEvent('fitvision:history-updated', { detail: [] }))
-    return true
-  } catch (err) {
-    console.error('Failed to clear workout history:', err)
-    return false
-  }
-}
-
 /**
  * Helper to get the start of the current week (Monday 00:00:00.000).
  */
@@ -107,9 +28,9 @@ function getEndOfWeek(date = new Date()) {
  * - totalExercises
  * - workoutsThisWeek
  */
-export function getWorkoutStatistics(history = getWorkoutHistory()) {
+export function getWorkoutStatistics(history = []) {
   const totalWorkouts = history.length
-  const totalExercises = history.reduce((sum, item) => sum + (Number(item.exercisesCompleted) || 0), 0)
+  const totalExercises = history.reduce((sum, item) => sum + (Number(item.exercisesCompleted || item.completedExercises) || 0), 0)
 
   const now = new Date()
   const weekStart = getStartOfWeek(now)
@@ -131,7 +52,7 @@ export function getWorkoutStatistics(history = getWorkoutHistory()) {
  * Returns an array of 7 day objects for the current week (Monday to Sunday)
  * indicating whether a workout was completed on that day and if it's today.
  */
-export function getWeeklyActivity(history = getWorkoutHistory()) {
+export function getWeeklyActivity(history = []) {
   const daysOfWeek = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
   const now = new Date()
   const weekStart = getStartOfWeek(now)
@@ -150,7 +71,7 @@ export function getWeeklyActivity(history = getWorkoutHistory()) {
     return {
       dayName,
       date: dayDate,
-      dateFormatted: dayDate.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
+      dateFormatted: dayDate.toLocaleDateString('en-US', { day: 'numeric', month: 'short' }),
       isToday: dayDateStr === todayDateStr,
       hasWorkout: workoutsOnDay.length > 0,
       workoutCount: workoutsOnDay.length,
@@ -166,7 +87,7 @@ export function formatWorkoutDate(isoString) {
   if (!isoString) return ''
   try {
     const d = new Date(isoString)
-    return d.toLocaleDateString(undefined, {
+    return d.toLocaleDateString('en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',
@@ -183,7 +104,7 @@ export function formatWorkoutDateTime(isoString) {
   if (!isoString) return ''
   try {
     const d = new Date(isoString)
-    return d.toLocaleString(undefined, {
+    return d.toLocaleString('en-US', {
       day: 'numeric',
       month: 'short',
       year: 'numeric',

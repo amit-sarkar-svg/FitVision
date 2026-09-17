@@ -178,7 +178,7 @@ export default function Exercises() {
           <div>
             <h1 className="text-2xl font-bold text-white mb-1">Exercises</h1>
             <p className="text-sm text-gray-400">
-              Browse and learn exercises with interactive 3D visualization.
+              Browse and learn exercises with multi-angle video demonstration.
             </p>
           </div>
         </div>

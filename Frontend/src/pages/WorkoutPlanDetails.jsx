@@ -17,6 +17,7 @@ import Button from '../components/UI/Button'
 import Badge from '../components/UI/Badge'
 import DeletePlanModal from '../components/Workout/DeletePlanModal'
 import { useWorkout } from '../context/WorkoutContext'
+import { exerciseMediaUrl } from '../utils/api'
 
 export default function WorkoutPlanDetails() {
   const { id } = useParams()
@@ -185,10 +186,13 @@ export default function WorkoutPlanDetails() {
 
                       {/* Exercise Thumbnail */}
                       <div className="w-14 h-14 rounded-xl bg-surface-hover border border-surface-border overflow-hidden shrink-0 flex items-center justify-center">
-                        {exercise.cover ? (
+                        {(exercise.media?.coverImage || exercise.cover) ? (
                           <img
-                            src={exercise.cover}
-                            alt=""
+                            src={exerciseMediaUrl(exercise.media?.coverImage || exercise.cover)}
+                            alt={exercise.name}
+                            onError={(event) => {
+                              event.currentTarget.style.display = 'none'
+                            }}
                             className="w-full h-full object-cover"
                           />
                         ) : (

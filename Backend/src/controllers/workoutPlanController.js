@@ -30,7 +30,7 @@ function serialisePlan(planDoc) {
       description: ex.description || '',
       tips: ex.tips || '',
       instructions: ex.instructions || [],
-      cover: ex.cover || null,
+      cover: ex.cover || ex.media?.coverImage || null,
       media: ex.media || {},
       primaryMuscles: ex.primaryMuscles || [],
       secondaryMuscles: ex.secondaryMuscles || [],

@@ -107,10 +107,6 @@ const exerciseSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
-  model3D: {
-    type: String,
-    default: null,
-  },
   audio: {
     type: String,
     default: null,

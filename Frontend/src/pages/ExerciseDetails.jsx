@@ -5,7 +5,6 @@ import { Plus } from "lucide-react";
 import { apiRequest, exerciseMediaUrl } from "../utils/api";
 import ExerciseHeader from "../components/Exercise/ExerciseHeader";
 import ExerciseViewer from "../components/Exercise/ExerciseViewer";
-import ModelSelector from "../components/Exercise/ModelSelector";
 import AnimationSpeed from "../components/Exercise/AnimationSpeed";
 import CameraControls from "../components/Exercise/CameraControls";
 import ExerciseTips from "../components/Exercise/ExerciseTips";
@@ -23,13 +22,10 @@ export default function ExerciseDetails() {
   const { isFavorite: checkIsFavorite, toggleFavorite, showToast } = useWorkout();
   const isFavorite = checkIsFavorite(exercise?._id) || checkIsFavorite(exercise?.id);
 
-  const hasExerciseVideo = Boolean(exercise?.media?.videos?.front);
   const viewerRef = useRef(null);
   const videoRef = useRef(null);
 
   const [isAddToPlanOpen, setIsAddToPlanOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("3d");
-  const [selectedModel, setSelectedModel] = useState("male-fitness");
   const [speed, setSpeed] = useState("1.0x");
   const [cameraAngle, setCameraAngle] = useState("front");
   const [isPlaying, setIsPlaying] = useState(false);
@@ -38,11 +34,13 @@ export default function ExerciseDetails() {
   const [volume, setVolume] = useState(0);
 
   useEffect(() => {
-    setExercise(null); setLoadError('');
-    apiRequest(`/exercises/${id}`).then((response) => {
-      setExercise(response.data);
-      setViewMode(response.data.media?.videos?.front ? 'video' : '3d');
-    }).catch((error) => setLoadError(error.message));
+    setExercise(null);
+    setLoadError('');
+    apiRequest(`/exercises/${id}`)
+      .then((response) => {
+        setExercise(response.data);
+      })
+      .catch((error) => setLoadError(error.message));
   }, [id]);
 
   const handleFullscreen = useCallback(() => {
@@ -69,8 +67,26 @@ export default function ExerciseDetails() {
     }
   };
 
-  if (loadError) return <div className="p-6"><p className="text-sm text-red-400">{loadError}</p><Link to="/exercises" className="mt-3 inline-block text-sm text-accent">Back to exercises</Link></div>;
-  if (!exercise) return <div className="p-6 text-sm text-gray-400">Loading exercise…</div>;
+  if (loadError) {
+    return (
+      <div className="p-6">
+        <p className="text-sm text-red-400">{loadError}</p>
+        <Link to="/exercises" className="mt-3 inline-block text-sm text-accent">
+          Back to exercises
+        </Link>
+      </div>
+    );
+  }
+
+  if (!exercise) {
+    return <div className="p-6 text-sm text-gray-400">Loading exercise…</div>;
+  }
+
+  const rawVideo =
+    exercise.media?.videos?.[cameraAngle] ||
+    exercise.media?.videos?.front ||
+    exercise.video;
+  const currentVideoSource = rawVideo ? exerciseMediaUrl(rawVideo) : undefined;
 
   return (
     <div className="p-4 lg:p-6">
@@ -85,9 +101,6 @@ export default function ExerciseDetails() {
         {/* Main content area: viewer + controls below */}
         <div className="space-y-4 min-w-0">
           <ExerciseViewer
-            mode={viewMode}
-            cameraAngle={cameraAngle}
-            animationSpeed={speed}
             exerciseName={exercise.name}
             isPlaying={isPlaying}
             currentTime={currentTime}
@@ -101,9 +114,7 @@ export default function ExerciseDetails() {
             onFullscreen={handleFullscreen}
             viewerRef={viewerRef}
             videoRef={videoRef}
-            videoSource={
-              hasExerciseVideo ? exerciseMediaUrl(exercise.media.videos[cameraAngle] || exercise.media.videos.front) : undefined
-            }
+            videoSource={currentVideoSource}
             videoPlaybackRate={Number.parseFloat(speed)}
             onVideoPlayStateChange={setIsPlaying}
             onVideoTimeChange={setCurrentTime}
@@ -113,10 +124,6 @@ export default function ExerciseDetails() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-4">
-              <ModelSelector
-                selectedModel={selectedModel}
-                onSelectModel={setSelectedModel}
-              />
               <AnimationSpeed speed={speed} onSpeedChange={setSpeed} />
               <ExerciseTips tip={exercise.tips} />
             </div>

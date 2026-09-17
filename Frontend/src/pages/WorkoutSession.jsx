@@ -8,7 +8,6 @@ import {
   ChevronRight,
   Trophy,
   Dumbbell,
-  Sparkles,
   RotateCcw,
   Check,
 } from 'lucide-react'
@@ -22,16 +21,7 @@ import TargetMuscles from '../components/Exercise/TargetMuscles'
 import MusclesWorked from '../components/Exercise/MusclesWorked'
 import ExitWorkoutModal from '../components/Workout/ExitWorkoutModal'
 import { useWorkout } from '../context/WorkoutContext'
-import { getExerciseById } from '../data/exercises'
 import { exerciseMediaUrl } from '../utils/api'
-
-const exerciseVideoSources = {
-  'dumbbell-bench-press': {
-    front: '/videos/exercises/dumbbell-bench-press/front.mp4',
-    side: '/videos/exercises/dumbbell-bench-press/side.mp4',
-    top: '/videos/exercises/dumbbell-bench-press/top.mp4',
-  },
-}
 
 export default function WorkoutSession() {
   const { id } = useParams()
@@ -102,41 +92,23 @@ export default function WorkoutSession() {
   const totalExercises = exercises.length
   const currentPlanExercise = exercises[currentIndex] || {}
 
-  // Merge with full exercise dataset if available, strictly prioritizing MongoDB data
-  const fullExerciseData = getExerciseById(currentPlanExercise.id) || {}
   const currentExercise = {
-    ...fullExerciseData,
     ...currentPlanExercise,
-    media: {
-      ...(fullExerciseData.media || {}),
-      ...(currentPlanExercise.media || {}),
-      videos: {
-        ...(fullExerciseData.media?.videos || {}),
-        ...(currentPlanExercise.media?.videos || {}),
-      },
-    },
-    primaryMuscles:
-      currentPlanExercise.primaryMuscles && currentPlanExercise.primaryMuscles.length > 0
-        ? currentPlanExercise.primaryMuscles
-        : (fullExerciseData.primaryMuscles || ['Pectoralis Major']),
-    secondaryMuscles:
-      currentPlanExercise.secondaryMuscles && currentPlanExercise.secondaryMuscles.length > 0
-        ? currentPlanExercise.secondaryMuscles
-        : (fullExerciseData.secondaryMuscles || ['Anterior Deltoid', 'Triceps Brachii']),
+    primaryMuscles: currentPlanExercise.primaryMuscles || [],
+    secondaryMuscles: currentPlanExercise.secondaryMuscles || [],
+    media: currentPlanExercise.media || {},
   }
 
   const isCurrentCompleted = completedIndices.has(currentIndex)
   const isLastExercise = currentIndex === totalExercises - 1
 
-  // Determine video availability: check MongoDB media.videos first, then fallback to static sources
+  // Resolve video source dynamically from the exercise document
   const exerciseVideos = currentExercise.media?.videos || {}
   const rawVideo =
     exerciseVideos[cameraAngle] ||
     exerciseVideos.front ||
-    exerciseVideoSources[currentExercise.id]?.[cameraAngle] ||
-    exerciseVideoSources[currentExercise.id]?.front
+    currentExercise.video
 
-  const hasExerciseVideo = Boolean(rawVideo)
   const currentVideoSource = rawVideo ? exerciseMediaUrl(rawVideo) : undefined
 
   const saveWorkout = async (completedSet) => {
@@ -387,7 +359,7 @@ export default function WorkoutSession() {
       {/* Main Exercise Content Area */}
       <AnimatePresence mode="wait">
         <motion.div
-          key={currentExercise.id + currentIndex}
+          key={(currentExercise.id || currentIndex) + currentIndex}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -10 }}
@@ -411,9 +383,9 @@ export default function WorkoutSession() {
             </div>
 
             <div className="flex items-center gap-2">
-              <Badge variant="default">{currentExercise.category || 'Chest'}</Badge>
+              <Badge variant="default">{currentExercise.category || 'General'}</Badge>
               <span className="text-xs text-gray-400 px-3 py-1 rounded-full bg-surface-hover border border-surface-border">
-                {currentExercise.difficulty || 'Intermediate'}
+                {currentExercise.difficulty || 'All Levels'}
               </span>
             </div>
           </div>
@@ -423,9 +395,6 @@ export default function WorkoutSession() {
             {/* Left Area: Exercise Video Viewer + Camera Controls */}
             <div className="space-y-4 min-w-0">
               <ExerciseViewer
-                mode={hasExerciseVideo ? 'video' : '3d'}
-                cameraAngle={cameraAngle}
-                animationSpeed="1.0x"
                 exerciseName={currentExercise.name}
                 isPlaying={isPlaying}
                 currentTime={currentTime}
@@ -470,7 +439,7 @@ export default function WorkoutSession() {
               <TargetMuscles
                 primaryMuscles={currentExercise.primaryMuscles}
                 secondaryMuscles={currentExercise.secondaryMuscles}
-                exerciseId={currentExercise.id}
+                exerciseId={currentExercise._id || currentExercise.id}
                 targetMusclesImage={currentExercise.media?.targetMusclesImage}
               />
               <MusclesWorked
@@ -485,7 +454,7 @@ export default function WorkoutSession() {
             <TargetMuscles
               primaryMuscles={currentExercise.primaryMuscles}
               secondaryMuscles={currentExercise.secondaryMuscles}
-              exerciseId={currentExercise.id}
+              exerciseId={currentExercise._id || currentExercise.id}
               targetMusclesImage={currentExercise.media?.targetMusclesImage}
             />
             <MusclesWorked

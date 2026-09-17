@@ -4,6 +4,7 @@ import { X, Plus, Check, AlertCircle, Dumbbell, CalendarPlus } from 'lucide-reac
 import Button from '../UI/Button'
 import Badge from '../UI/Badge'
 import { useWorkout } from '../../context/WorkoutContext'
+import { exerciseMediaUrl } from '../../utils/api'
 
 export default function AddToPlanModal({ isOpen, onClose, exercise }) {
   const { plans, createPlan, addExercise, showToast } = useWorkout()
@@ -103,8 +104,15 @@ export default function AddToPlanModal({ isOpen, onClose, exercise }) {
           {/* Current Exercise Preview */}
           <div className="flex items-center gap-3 p-3 rounded-xl bg-surface/60 border border-surface-border mb-4">
             <div className="w-12 h-12 rounded-lg bg-surface-hover flex items-center justify-center overflow-hidden shrink-0 border border-surface-border">
-              {exercise.cover ? (
-                <img src={exercise.cover} alt="" className="w-full h-full object-cover" />
+              {(exercise.media?.coverImage || exercise.cover) ? (
+                <img
+                  src={exerciseMediaUrl(exercise.media?.coverImage || exercise.cover)}
+                  alt={exercise.name}
+                  onError={(event) => {
+                    event.currentTarget.style.display = 'none'
+                  }}
+                  className="w-full h-full object-cover"
+                />
               ) : (
                 <Dumbbell className="w-6 h-6 text-accent" />
               )}
