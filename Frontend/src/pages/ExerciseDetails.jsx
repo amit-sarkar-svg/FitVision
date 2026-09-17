@@ -49,9 +49,14 @@ export default function ExerciseDetails() {
     videoRef.current?.requestFullscreen();
   }, []);
 
-  const handleToggleFavorite = () => {
-    if (!exercise) return;
-    const res = toggleFavorite(exercise._id);
+  const [isTogglingFavorite, setIsTogglingFavorite] = useState(false);
+
+  const handleToggleFavorite = async () => {
+    if (!exercise || isTogglingFavorite) return;
+    setIsTogglingFavorite(true);
+    const exerciseId = exercise._id || exercise.id;
+    const res = await toggleFavorite(exerciseId);
+    setIsTogglingFavorite(false);
     if (res.success) {
       showToast(
         res.isFavorite
@@ -59,6 +64,8 @@ export default function ExerciseDetails() {
           : `Removed "${exercise.name}" from Favorites`,
         'success'
       );
+    } else {
+      showToast(res.error || 'Failed to update favorites', 'error');
     }
   };
 

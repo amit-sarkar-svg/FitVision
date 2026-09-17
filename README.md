@@ -82,6 +82,12 @@ Workout Plans API (Bearer token required, strictly scoped to authenticated user)
 - `POST /api/workout-plans/:id/exercises` — Add an exercise (`{ exerciseId }`)
 - `DELETE /api/workout-plans/:id/exercises/:exerciseId` — Remove an exercise from plan
 
+Favorites API (Bearer token required, strictly scoped to authenticated user):
+
+- `GET /api/favorites` — Get all favorite exercises belonging to the authenticated user
+- `POST /api/favorites/:exerciseId` — Add an exercise to current user's favorites
+- `DELETE /api/favorites/:exerciseId` — Remove an exercise from current user's favorites
+
 Admin API (Bearer token with `admin` role required):
 
 - `GET /api/admin/exercises`
@@ -108,6 +114,18 @@ Admin API (Bearer token with `admin` role required):
 ```
 
 Every workout plan operation derives user ownership directly from the verified JWT (`req.user.id`). Users cannot access, modify, or delete plans belonging to other users.
+
+## Favorite MongoDB Model
+
+```javascript
+{
+  user: ObjectId -> User (required, indexed),
+  exercise: ObjectId -> Exercise (required),
+  timestamps: true
+}
+```
+
+Compound index: `{ user: 1, exercise: 1 }` with `{ unique: true }` prevents duplicate favorites. All operations strictly isolate user favorites using `req.user.id`.
 
 ## Exercise media
 

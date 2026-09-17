@@ -3,6 +3,7 @@ const fs = require('fs/promises');
 const path = require('path');
 const Exercise = require('../models/Exercise');
 const User = require('../models/User');
+const Favorite = require('../models/Favorite');
 const { safeUser } = require('../utils/auth');
 
 const uploadRoot = path.resolve(__dirname, '../../uploads/exercises');
@@ -139,6 +140,7 @@ const deleteExercise = async (req, res) => {
     const exercise = await Exercise.findByIdAndDelete(req.params.id);
     if (!exercise) return res.status(404).json({ success: false, message: 'Exercise not found.' });
     await removeExerciseMedia(exercise);
+    await Favorite.deleteMany({ exercise: exercise._id });
     return res.status(200).json({ success: true, message: 'Exercise deleted.' });
   } catch {
     return res.status(500).json({ success: false, message: 'Unable to delete exercise.' });
