@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const exerciseRoutes = require('./routes/exerciseRoutes');
 
 const app = express();
 
@@ -12,5 +13,7 @@ app.get('/api/health', (req, res) => {
     message: 'FitVision backend is running',
   });
 });
+
+app.use('/api/exercises', exerciseRoutes);
 
 module.exports = app;
