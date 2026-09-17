@@ -21,10 +21,19 @@ import { useWorkout } from '../context/WorkoutContext'
 export default function WorkoutPlanDetails() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getPlanById, removeExercise, deletePlan, showToast } = useWorkout()
+  const { getPlanById, removeExercise, deletePlan, showToast, plansLoading } = useWorkout()
   const plan = getPlanById(id)
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [removingExerciseId, setRemovingExerciseId] = useState(null)
+
+  if (plansLoading && !plan) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm text-gray-400">Loading workout plan…</p>
+      </div>
+    )
+  }
 
   if (!plan) {
     return (
@@ -44,21 +53,26 @@ export default function WorkoutPlanDetails() {
     )
   }
 
-  const exercises = plan.exercises || []
+  const exercises = plan?.exercises || []
 
-  const handleRemoveExercise = (exerciseId, exerciseName) => {
-    const res = removeExercise(plan.id, exerciseId)
+  const handleRemoveExercise = async (exerciseId, exerciseName) => {
+    setRemovingExerciseId(exerciseId)
+    const res = await removeExercise(plan.id, exerciseId)
+    setRemovingExerciseId(null)
     if (res.success) {
       showToast(`Removed "${exerciseName}" from ${plan.name}`)
-      setRemovingExerciseId(null)
+    } else {
+      showToast(res.error || 'Failed to remove exercise', 'error')
     }
   }
 
-  const handleDeletePlan = () => {
-    const res = deletePlan(plan.id)
+  const handleDeletePlan = async () => {
+    const res = await deletePlan(plan.id)
     if (res.success) {
       showToast(`Deleted plan "${plan.name}"`)
       navigate('/workout-plans')
+    } else {
+      showToast(res.error || 'Failed to delete plan', 'error')
     }
   }
 
@@ -203,8 +217,9 @@ export default function WorkoutPlanDetails() {
                       </Link>
 
                       <button
-                        onClick={() => handleRemoveExercise(exercise.id, exercise.name)}
-                        className="p-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors"
+                        onClick={() => handleRemoveExercise(exercise._id || exercise.id, exercise.name)}
+                        disabled={removingExerciseId === (exercise._id || exercise.id)}
+                        className="p-2 rounded-xl text-gray-500 hover:text-red-400 hover:bg-red-400/10 transition-colors disabled:opacity-50"
                         title="Remove from plan"
                         aria-label={`Remove ${exercise.name}`}
                       >

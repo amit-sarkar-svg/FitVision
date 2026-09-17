@@ -1,12 +1,12 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react'
 import {
-  getWorkoutPlans,
-  createWorkoutPlan as createPlanStorage,
-  deleteWorkoutPlan as deletePlanStorage,
-  addExerciseToPlan as addExerciseStorage,
-  removeExerciseFromPlan as removeExerciseStorage,
-  getWorkoutPlanById as getPlanByIdStorage,
-} from '../utils/workoutStorage'
+  fetchPlans,
+  createPlanApi,
+  deletePlanApi,
+  addExerciseApi,
+  removeExerciseApi,
+  fetchPlanById,
+} from '../utils/workoutPlanApi'
 import {
   getWorkoutHistory,
   saveCompletedWorkout as saveCompletedWorkoutStorage,
@@ -21,16 +21,29 @@ import {
   toggleFavoriteExercise as toggleFavoriteStorage,
   isExerciseFavorite as isFavoriteStorage,
 } from '../utils/favoritesStorage'
+import { useAuth } from './AuthContext'
 import Toast from '../components/UI/Toast'
 
 const WorkoutContext = createContext(null)
 
 export function WorkoutProvider({ children }) {
-  const [plans, setPlans] = useState(() => getWorkoutPlans())
+  const { isAuthenticated, authorizedRequest } = useAuth()
+
+  // Plans state — now driven by the API
+  const [plans, setPlans] = useState([])
+  const [plansLoading, setPlansLoading] = useState(false)
+  const [plansError, setPlansError] = useState(null)
+
+  // History & Favorites — remain localStorage-based (out of scope)
   const [history, setHistory] = useState(() => getWorkoutHistory())
   const [favorites, setFavorites] = useState(() => getFavoriteExerciseIds())
   const [toast, setToast] = useState(null)
 
+  // Track the latest authorizedRequest ref so callbacks never become stale
+  const authReqRef = useRef(authorizedRequest)
+  useEffect(() => { authReqRef.current = authorizedRequest }, [authorizedRequest])
+
+  // ────────────────────── Toast ──────────────────────
   const showToast = useCallback((message, type = 'success', title = '') => {
     setToast({ message, type, title })
     setTimeout(() => {
@@ -42,85 +55,85 @@ export function WorkoutProvider({ children }) {
     setToast(null)
   }, [])
 
-  const reloadPlans = useCallback(() => {
-    setPlans(getWorkoutPlans())
+  // ────────────────────── Plans (API) ──────────────────────
+  const reloadPlans = useCallback(async () => {
+    if (!authReqRef.current) return
+    setPlansLoading(true)
+    setPlansError(null)
+    try {
+      const data = await fetchPlans(authReqRef.current)
+      setPlans(data)
+    } catch (err) {
+      setPlansError(err.message || 'Failed to load workout plans.')
+      console.error('Failed to fetch workout plans:', err)
+    } finally {
+      setPlansLoading(false)
+    }
   }, [])
 
+  // Fetch plans when user authenticates
+  useEffect(() => {
+    if (isAuthenticated) {
+      reloadPlans()
+    } else {
+      // Clear plans when logged out
+      setPlans([])
+      setPlansError(null)
+    }
+  }, [isAuthenticated, reloadPlans])
+
+  const createPlan = useCallback(async (data) => {
+    try {
+      const plan = await createPlanApi(authReqRef.current, data)
+      setPlans((prev) => [plan, ...prev])
+      return { success: true, plan }
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to create plan.' }
+    }
+  }, [])
+
+  const deletePlan = useCallback(async (planId) => {
+    try {
+      await deletePlanApi(authReqRef.current, planId)
+      setPlans((prev) => prev.filter((p) => p.id !== planId))
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to delete plan.' }
+    }
+  }, [])
+
+  const addExercise = useCallback(async (planId, exercise) => {
+    try {
+      // Send the exercise's MongoDB _id (or slug id) to the backend
+      const exerciseId = exercise._id || exercise.id
+      const updatedPlan = await addExerciseApi(authReqRef.current, planId, exerciseId)
+      setPlans((prev) => prev.map((p) => (p.id === planId ? updatedPlan : p)))
+      return { success: true, plan: updatedPlan }
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to add exercise.' }
+    }
+  }, [])
+
+  const removeExercise = useCallback(async (planId, exerciseId) => {
+    try {
+      const updatedPlan = await removeExerciseApi(authReqRef.current, planId, exerciseId)
+      setPlans((prev) => prev.map((p) => (p.id === planId ? updatedPlan : p)))
+      return { success: true, plan: updatedPlan }
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to remove exercise.' }
+    }
+  }, [])
+
+  const getPlanById = useCallback((planId) => {
+    // Synchronous lookup from the already-loaded plans array
+    return plans.find((p) => p.id === planId) || null
+  }, [plans])
+
+  // ────────────────────── History (localStorage — unchanged) ──────────────────────
   const reloadHistory = useCallback(() => {
     setHistory(getWorkoutHistory())
   }, [])
 
-  const reloadFavorites = useCallback(() => {
-    setFavorites(getFavoriteExerciseIds())
-  }, [])
-
-  useEffect(() => {
-    const handlePlansUpdate = () => {
-      reloadPlans()
-    }
-    const handleHistoryUpdate = () => {
-      reloadHistory()
-    }
-    const handleFavoritesUpdate = () => {
-      reloadFavorites()
-    }
-    const handleStorageUpdate = (e) => {
-      if (e.key === 'fitvision_workout_plans') reloadPlans()
-      if (e.key === 'fitvision_workout_history') reloadHistory()
-      if (e.key === 'fitvision_favorite_exercises') reloadFavorites()
-    }
-
-    window.addEventListener('fitvision:plans-updated', handlePlansUpdate)
-    window.addEventListener('fitvision:history-updated', handleHistoryUpdate)
-    window.addEventListener('fitvision:favorites-updated', handleFavoritesUpdate)
-    window.addEventListener('storage', handleStorageUpdate)
-
-    return () => {
-      window.removeEventListener('fitvision:plans-updated', handlePlansUpdate)
-      window.removeEventListener('fitvision:history-updated', handleHistoryUpdate)
-      window.removeEventListener('fitvision:favorites-updated', handleFavoritesUpdate)
-      window.removeEventListener('storage', handleStorageUpdate)
-    }
-  }, [reloadPlans, reloadHistory, reloadFavorites])
-
-  // Workout Plans
-  const createPlan = useCallback((data) => {
-    const res = createPlanStorage(data)
-    if (res.success) {
-      reloadPlans()
-    }
-    return res
-  }, [reloadPlans])
-
-  const deletePlan = useCallback((planId) => {
-    const res = deletePlanStorage(planId)
-    if (res.success) {
-      reloadPlans()
-    }
-    return res
-  }, [reloadPlans])
-
-  const addExercise = useCallback((planId, exercise) => {
-    const res = addExerciseStorage(planId, exercise)
-    if (res.success) {
-      reloadPlans()
-    }
-    return res
-  }, [reloadPlans])
-
-  const removeExercise = useCallback((planId, exerciseId) => {
-    const res = removeExerciseStorage(planId, exerciseId)
-    if (res.success) {
-      reloadPlans()
-    }
-    return res
-  }, [reloadPlans])
-
-  const getPlanById = useCallback((planId) => {
-    return getPlanByIdStorage(planId)
-  }, [])
-
-  // Workout History
   const recordWorkoutCompletion = useCallback((workoutData) => {
     const res = saveCompletedWorkoutStorage(workoutData)
     if (res.success) {
@@ -137,7 +150,11 @@ export function WorkoutProvider({ children }) {
     return res
   }, [reloadHistory])
 
-  // Favorites
+  // ────────────────────── Favorites (localStorage — unchanged) ──────────────────────
+  const reloadFavorites = useCallback(() => {
+    setFavorites(getFavoriteExerciseIds())
+  }, [])
+
   const isFavorite = useCallback((exerciseId) => {
     return favorites.includes(exerciseId)
   }, [favorites])
@@ -166,10 +183,32 @@ export function WorkoutProvider({ children }) {
     return res
   }, [reloadFavorites])
 
+  // Keep localStorage-based event listeners for History & Favorites
+  useEffect(() => {
+    const handleHistoryUpdate = () => reloadHistory()
+    const handleFavoritesUpdate = () => reloadFavorites()
+    const handleStorageUpdate = (e) => {
+      if (e.key === 'fitvision_workout_history') reloadHistory()
+      if (e.key === 'fitvision_favorite_exercises') reloadFavorites()
+    }
+
+    window.addEventListener('fitvision:history-updated', handleHistoryUpdate)
+    window.addEventListener('fitvision:favorites-updated', handleFavoritesUpdate)
+    window.addEventListener('storage', handleStorageUpdate)
+
+    return () => {
+      window.removeEventListener('fitvision:history-updated', handleHistoryUpdate)
+      window.removeEventListener('fitvision:favorites-updated', handleFavoritesUpdate)
+      window.removeEventListener('storage', handleStorageUpdate)
+    }
+  }, [reloadHistory, reloadFavorites])
+
   return (
     <WorkoutContext.Provider
       value={{
         plans,
+        plansLoading,
+        plansError,
         history,
         favorites,
         createPlan,

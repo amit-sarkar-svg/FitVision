@@ -9,10 +9,11 @@ export default function CreatePlanModal({ isOpen, onClose }) {
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
   const [error, setError] = useState('')
+  const [submitting, setSubmitting] = useState(false)
 
   if (!isOpen) return null
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
     setError('')
 
@@ -21,14 +22,19 @@ export default function CreatePlanModal({ isOpen, onClose }) {
       return
     }
 
-    const res = createPlan({ name, description })
-    if (res.success) {
-      showToast(`Workout plan "${res.plan.name}" created!`)
-      setName('')
-      setDescription('')
-      onClose()
-    } else {
-      setError(res.error || 'Failed to create plan')
+    setSubmitting(true)
+    try {
+      const res = await createPlan({ name, description })
+      if (res.success) {
+        showToast(`Workout plan "${res.plan.name}" created!`)
+        setName('')
+        setDescription('')
+        onClose()
+      } else {
+        setError(res.error || 'Failed to create plan')
+      }
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -111,9 +117,9 @@ export default function CreatePlanModal({ isOpen, onClose }) {
               <Button type="button" variant="secondary" size="md" onClick={onClose}>
                 Cancel
               </Button>
-              <Button type="submit" variant="primary" size="md">
+              <Button type="submit" variant="primary" size="md" disabled={submitting}>
                 <Check className="w-4 h-4" />
-                Create Plan
+                {submitting ? 'Creating…' : 'Create Plan'}
               </Button>
             </div>
           </form>

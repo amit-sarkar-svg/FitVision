@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Plus, Check, AlertCircle, Dumbbell, CalendarPlus } from 'lucide-react'
 import Button from '../UI/Button'
@@ -12,10 +12,18 @@ export default function AddToPlanModal({ isOpen, onClose, exercise }) {
   const [newPlanName, setNewPlanName] = useState('')
   const [newPlanDesc, setNewPlanDesc] = useState('')
   const [errorMessage, setErrorMessage] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  // Sync selectedPlanId if not set and plans are available
+  useEffect(() => {
+    if (!selectedPlanId && plans.length > 0) {
+      setSelectedPlanId(plans[0].id)
+    }
+  }, [plans, selectedPlanId])
 
   if (!isOpen || !exercise) return null
 
-  const handleCreateAndSelect = (e) => {
+  const handleCreateAndSelect = async (e) => {
     e.preventDefault()
     setErrorMessage('')
     if (!newPlanName.trim()) {
@@ -23,7 +31,9 @@ export default function AddToPlanModal({ isOpen, onClose, exercise }) {
       return
     }
 
-    const res = createPlan({ name: newPlanName, description: newPlanDesc })
+    setSubmitting(true)
+    const res = await createPlan({ name: newPlanName, description: newPlanDesc })
+    setSubmitting(false)
     if (res.success && res.plan) {
       setSelectedPlanId(res.plan.id)
       setIsCreatingNew(false)
@@ -34,16 +44,19 @@ export default function AddToPlanModal({ isOpen, onClose, exercise }) {
     }
   }
 
-  const handleAddExercise = () => {
+  const handleAddExercise = async () => {
     setErrorMessage('')
-    if (!selectedPlanId) {
+    const targetPlanId = selectedPlanId || plans[0]?.id
+    if (!targetPlanId) {
       setErrorMessage('Please select a workout plan')
       return
     }
 
-    const res = addExercise(selectedPlanId, exercise)
+    setSubmitting(true)
+    const res = await addExercise(targetPlanId, exercise)
+    setSubmitting(false)
     if (res.success) {
-      const targetPlan = plans.find((p) => p.id === selectedPlanId) || res.plan
+      const targetPlan = plans.find((p) => p.id === targetPlanId) || res.plan
       showToast(`Added "${exercise.name}" to ${targetPlan?.name || 'workout plan'}`)
       onClose()
     } else {
@@ -204,17 +217,17 @@ export default function AddToPlanModal({ isOpen, onClose, exercise }) {
 
               {/* Actions */}
               <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-surface-border mt-4">
-                <Button variant="secondary" size="md" onClick={onClose}>
+                <Button variant="secondary" size="md" onClick={onClose} disabled={submitting}>
                   Cancel
                 </Button>
                 <Button
                   variant="primary"
                   size="md"
-                  disabled={plans.length === 0 || !selectedPlanId}
+                  disabled={plans.length === 0 || !selectedPlanId || submitting}
                   onClick={handleAddExercise}
                 >
                   <Plus className="w-4 h-4" />
-                  Add Exercise
+                  {submitting ? 'Adding…' : 'Add Exercise'}
                 </Button>
               </div>
             </div>
@@ -254,6 +267,7 @@ export default function AddToPlanModal({ isOpen, onClose, exercise }) {
                   type="button"
                   variant="ghost"
                   size="md"
+                  disabled={submitting}
                   onClick={() => {
                     setErrorMessage('')
                     setIsCreatingNew(false)
@@ -261,9 +275,9 @@ export default function AddToPlanModal({ isOpen, onClose, exercise }) {
                 >
                   Back
                 </Button>
-                <Button type="submit" variant="primary" size="md">
+                <Button type="submit" variant="primary" size="md" disabled={submitting}>
                   <Check className="w-4 h-4" />
-                  Create Plan
+                  {submitting ? 'Creating…' : 'Create Plan'}
                 </Button>
               </div>
             </form>

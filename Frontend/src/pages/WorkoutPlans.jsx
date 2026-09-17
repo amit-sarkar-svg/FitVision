@@ -8,13 +8,13 @@ import DeletePlanModal from '../components/Workout/DeletePlanModal'
 import { useWorkout } from '../context/WorkoutContext'
 
 export default function WorkoutPlans() {
-  const { plans, deletePlan, showToast } = useWorkout()
+  const { plans, plansLoading, plansError, deletePlan, showToast } = useWorkout()
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false)
   const [planToDelete, setPlanToDelete] = useState(null)
 
-  const handleDeleteConfirm = (planId) => {
+  const handleDeleteConfirm = async (planId) => {
     const targetPlan = plans.find((p) => p.id === planId)
-    const res = deletePlan(planId)
+    const res = await deletePlan(planId)
     if (res.success) {
       showToast(`Deleted plan "${targetPlan?.name || 'Workout Plan'}"`)
     }
@@ -47,8 +47,22 @@ export default function WorkoutPlans() {
         </Button>
       </div>
 
-      {/* Plans List or Empty State */}
-      {plans.length === 0 ? (
+      {/* Loading State */}
+      {plansLoading && plans.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+          <p className="text-sm text-gray-400">Loading workout plans…</p>
+        </div>
+      ) : plansError ? (
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex flex-col items-center justify-center p-8 rounded-2xl bg-red-500/5 border border-red-500/20 text-center max-w-md mx-auto my-8"
+        >
+          <p className="text-sm text-red-400 mb-2">{plansError}</p>
+          <p className="text-xs text-gray-500">Please try refreshing the page.</p>
+        </motion.div>
+      ) : plans.length === 0 ? (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}

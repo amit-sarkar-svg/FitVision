@@ -4,6 +4,7 @@ const multer = require('multer');
 const exerciseRoutes = require('./routes/exerciseRoutes');
 const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
+const workoutPlanRoutes = require('./routes/workoutPlanRoutes');
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/exercises', exerciseRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/workout-plans', workoutPlanRoutes);
 
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {

@@ -35,7 +35,7 @@ const exerciseVideoSources = {
 export default function WorkoutSession() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const { getPlanById, recordWorkoutCompletion } = useWorkout()
+  const { getPlanById, recordWorkoutCompletion, plansLoading } = useWorkout()
   const plan = getPlanById(id)
 
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -63,6 +63,15 @@ export default function WorkoutSession() {
     setIsPlaying(false)
     setCurrentTime(0)
   }, [currentIndex])
+
+  if (plansLoading && !plan) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24">
+        <div className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm text-gray-400">Loading workout session…</p>
+      </div>
+    )
+  }
 
   if (!plan || !plan.exercises || plan.exercises.length === 0) {
     return (

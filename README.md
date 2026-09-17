@@ -72,6 +72,16 @@ Public exercises:
 - `GET /api/exercises`
 - `GET /api/exercises/:id`
 
+Workout Plans API (Bearer token required, strictly scoped to authenticated user):
+
+- `GET /api/workout-plans` — Get all plans belonging to the authenticated user
+- `POST /api/workout-plans` — Create a new plan (`{ name, description }`)
+- `GET /api/workout-plans/:id` — Get a specific plan by ID
+- `PUT /api/workout-plans/:id` — Update plan name or description
+- `DELETE /api/workout-plans/:id` — Delete a plan
+- `POST /api/workout-plans/:id/exercises` — Add an exercise (`{ exerciseId }`)
+- `DELETE /api/workout-plans/:id/exercises/:exerciseId` — Remove an exercise from plan
+
 Admin API (Bearer token with `admin` role required):
 
 - `GET /api/admin/exercises`
@@ -79,6 +89,25 @@ Admin API (Bearer token with `admin` role required):
 - `PUT /api/admin/exercises/:id`
 - `DELETE /api/admin/exercises/:id`
 - `GET /api/admin/users`
+
+## WorkoutPlan MongoDB Model
+
+```javascript
+{
+  user: ObjectId -> User (required, indexed),
+  name: String (required, trimmed),
+  description: String (trimmed),
+  exercises: [
+    {
+      exercise: ObjectId -> Exercise,
+      order: Number
+    }
+  ],
+  timestamps: true
+}
+```
+
+Every workout plan operation derives user ownership directly from the verified JWT (`req.user.id`). Users cannot access, modify, or delete plans belonging to other users.
 
 ## Exercise media
 
