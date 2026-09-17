@@ -20,15 +20,14 @@ const getExercises = async (req, res) => {
 const getExerciseById = async (req, res) => {
   const { id } = req.params;
 
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid exercise ID.',
-    });
-  }
-
   try {
-    const exercise = await Exercise.findById(id);
+    let exercise = null;
+    if (mongoose.isValidObjectId(id)) {
+      exercise = await Exercise.findById(id);
+    }
+    if (!exercise) {
+      exercise = await Exercise.findOne({ id });
+    }
 
     if (!exercise) {
       return res.status(404).json({

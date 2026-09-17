@@ -25,3 +25,6 @@ coverage/
 # Build output
 dist/
 build/
+
+# Local exercise uploads
+uploads/

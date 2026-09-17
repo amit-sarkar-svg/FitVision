@@ -1,6 +1,9 @@
-import { Search, Flame, Bell, ChevronDown, Menu } from 'lucide-react'
+import { Search, Flame, Bell, Menu, LogOut } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
 export default function Header({ onMenuClick }) {
+  const { user, logout } = useAuth()
   return (
     <header className="sticky top-0 z-30 bg-surface/80 backdrop-blur-md border-b border-surface-border">
       <div className="flex items-center gap-4 px-4 lg:px-6 py-3">
@@ -35,13 +38,13 @@ export default function Header({ onMenuClick }) {
             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full" />
           </button>
 
-          <button className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2 pr-2 sm:pr-3 py-1 rounded-xl hover:bg-surface-hover transition-colors">
+          {user ? <div className="flex items-center gap-2 sm:gap-3 pl-1 sm:pl-2 pr-2 sm:pr-3 py-1 rounded-xl hover:bg-surface-hover transition-colors">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-accent/80 to-emerald-700 flex items-center justify-center text-xs font-bold text-surface">
-              AS
+              {user.name.slice(0, 2).toUpperCase()}
             </div>
-            <span className="hidden sm:block text-sm font-medium text-white">Amit Sarkar</span>
-            <ChevronDown className="hidden sm:block w-4 h-4 text-gray-400" />
-          </button>
+            <span className="hidden sm:block text-sm font-medium text-white">{user.name}</span>
+            <button onClick={logout} className="p-1 text-gray-400 hover:text-white" title="Logout" aria-label="Logout"><LogOut className="w-4 h-4" /></button>
+          </div> : <Link to="/login" className="rounded-xl border border-surface-border px-3 py-2 text-sm font-medium text-white hover:border-accent hover:text-accent">Login</Link>}
         </div>
       </div>
     </header>

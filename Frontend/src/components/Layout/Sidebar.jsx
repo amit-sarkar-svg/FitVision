@@ -14,6 +14,7 @@ import {
   X,
 } from 'lucide-react'
 import ProgressBar from '../UI/ProgressBar'
+import { useAuth } from '../../context/AuthContext'
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -28,6 +29,7 @@ const navItems = [
 ]
 
 export default function Sidebar({ isOpen, onClose }) {
+  const { user } = useAuth()
   return (
     <>
       {isOpen && (
@@ -87,6 +89,7 @@ export default function Sidebar({ isOpen, onClose }) {
               )}
             </NavLink>
           ))}
+          {user?.role === 'admin' && <NavLink to="/admin" onClick={onClose} className={({ isActive }) => `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${isActive ? 'bg-accent text-surface shadow-glow' : 'text-gray-400 hover:text-white hover:bg-surface-hover'}`}><Settings className="w-[18px] h-[18px]" /><span>Admin</span></NavLink>}
         </nav>
 
         <div className="p-4 border-t border-surface-border">

@@ -400,6 +400,7 @@ export default function WorkoutSession() {
                 primaryMuscles={currentExercise.primaryMuscles}
                 secondaryMuscles={currentExercise.secondaryMuscles}
                 exerciseId={currentExercise.id}
+                targetMusclesImage={currentExercise.media?.targetMusclesImage}
               />
               <MusclesWorked
                 primaryMuscles={currentExercise.primaryMuscles}
@@ -414,6 +415,7 @@ export default function WorkoutSession() {
               primaryMuscles={currentExercise.primaryMuscles}
               secondaryMuscles={currentExercise.secondaryMuscles}
               exerciseId={currentExercise.id}
+              targetMusclesImage={currentExercise.media?.targetMusclesImage}
             />
             <MusclesWorked
               primaryMuscles={currentExercise.primaryMuscles}

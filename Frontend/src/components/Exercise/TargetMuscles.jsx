@@ -1,10 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Card from "../UI/Card";
 import { muscleLabels } from "../../data/exercises";
 import { clsx } from "../../utils/clsx";
+import { exerciseMediaUrl } from "../../utils/api";
 
 function TargetMuscleImage({ imagePath }) {
   const [imageError, setImageError] = useState(false);
+
+  useEffect(() => {
+    setImageError(false);
+  }, [imagePath]);
 
   if (imageError) {
     return (
@@ -30,11 +35,14 @@ export default function TargetMuscles({
   primaryMuscles,
   secondaryMuscles,
   exerciseId,
+  targetMusclesImage,
 }) {
   const [tab, setTab] = useState("primary");
 
   const legendMuscles = tab === "primary" ? primaryMuscles : secondaryMuscles;
-  const imagePath = `/images/target-muscles/${exerciseId}.png`;
+  const imagePath = targetMusclesImage
+    ? exerciseMediaUrl(targetMusclesImage)
+    : `/images/target-muscles/${exerciseId}.png`;
 
   return (
     <Card>

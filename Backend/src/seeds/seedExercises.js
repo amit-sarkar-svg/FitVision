@@ -56,6 +56,14 @@ const dumbbellBenchPress = {
   video: null,
   model3D: null,
   audio: null,
+  media: {
+    coverImage: '/images/exercises/dumbbell-bench-press-cover.png',
+    videos: {
+      front: '/videos/exercises/dumbbell-bench-press/front.mp4',
+      side: '/videos/exercises/dumbbell-bench-press/side.mp4',
+      top: '/videos/exercises/dumbbell-bench-press/top.mp4',
+    },
+  },
   duration: 18,
 };
 

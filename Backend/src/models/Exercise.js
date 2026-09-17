@@ -21,6 +21,19 @@ const relatedExerciseSchema = new mongoose.Schema(
   { _id: false },
 );
 
+const mediaSchema = new mongoose.Schema(
+  {
+    coverImage: { type: String, default: null },
+    targetMusclesImage: { type: String, default: null },
+    videos: {
+      front: { type: String, default: null },
+      side: { type: String, default: null },
+      top: { type: String, default: null },
+    },
+  },
+  { _id: false },
+);
+
 const exerciseSchema = new mongoose.Schema({
   id: {
     type: String,
@@ -47,13 +60,18 @@ const exerciseSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  equipment: {
+    type: String,
+    default: '',
+    trim: true,
+  },
   primaryMuscles: {
     type: [String],
-    required: true,
+    default: [],
   },
   secondaryMuscles: {
     type: [String],
-    required: true,
+    default: [],
   },
   description: {
     type: String,
@@ -62,28 +80,28 @@ const exerciseSchema = new mongoose.Schema({
   },
   benefits: {
     type: [String],
-    required: true,
+    default: [],
   },
   commonMistakes: {
     type: [String],
-    required: true,
+    default: [],
   },
   instructions: {
     type: [String],
-    required: true,
+    default: [],
   },
   tips: {
     type: String,
-    required: true,
+    default: '',
     trim: true,
   },
   correctForm: {
     type: [String],
-    required: true,
+    default: [],
   },
   relatedExercises: {
     type: [relatedExerciseSchema],
-    required: true,
+    default: [],
   },
   video: {
     type: String,
@@ -97,10 +115,14 @@ const exerciseSchema = new mongoose.Schema({
     type: String,
     default: null,
   },
+  media: {
+    type: mediaSchema,
+    default: () => ({}),
+  },
   duration: {
     type: Number,
-    required: true,
+    default: 18,
   },
-});
+}, { timestamps: true });
 
 module.exports = mongoose.model('Exercise', exerciseSchema);

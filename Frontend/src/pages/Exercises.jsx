@@ -1,11 +1,15 @@
-import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
-import { Dumbbell, ArrowRight } from "lucide-react";
-import Card from "../components/UI/Card";
-import Badge from "../components/UI/Badge";
-import { exercises } from "../data/exercises";
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
+import { Dumbbell, ArrowRight } from 'lucide-react'
+import Card from '../components/UI/Card'
+import Badge from '../components/UI/Badge'
+import { apiRequest, exerciseMediaUrl } from '../utils/api'
 
 export default function Exercises() {
+  const [exercises, setExercises] = useState([])
+  const [error, setError] = useState('')
+  useEffect(() => { apiRequest('/exercises').then((response) => setExercises(response.data)).catch((requestError) => setError(requestError.message)) }, [])
   return (
     <div className="p-4 lg:p-6">
       <div className="mb-6">
@@ -18,18 +22,18 @@ export default function Exercises() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {exercises.map((exercise, index) => (
           <motion.div
-            key={exercise.id}
+            key={exercise._id}
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.05 }}
           >
-            <Link to={`/exercises/${exercise.id}`}>
+            <Link to={`/exercises/${exercise._id}`}>
               <Card className="group hover:border-accent/30 transition-all cursor-pointer h-full">
                 <div className="relative aspect-video rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 mb-4 flex items-center justify-center overflow-hidden">
                   <Dumbbell className="w-10 h-10 text-gray-600 group-hover:text-accent/50 transition-colors" />
                   {exercise.cover ? (
                     <img
-                      src={exercise.cover}
+                      src={exerciseMediaUrl(exercise.media?.coverImage || exercise.cover)}
                       alt=""
                       aria-hidden="true"
                       onError={(event) => {
@@ -58,6 +62,8 @@ export default function Exercises() {
           </motion.div>
         ))}
       </div>
+      {error && <p className="mt-4 text-sm text-red-400">{error}</p>}
+      {!error && exercises.length === 0 && <p className="mt-4 text-sm text-gray-400">No exercises are available yet.</p>}
     </div>
   );
 }
