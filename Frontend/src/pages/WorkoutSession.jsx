@@ -23,6 +23,7 @@ import MusclesWorked from '../components/Exercise/MusclesWorked'
 import ExitWorkoutModal from '../components/Workout/ExitWorkoutModal'
 import { useWorkout } from '../context/WorkoutContext'
 import { getExerciseById } from '../data/exercises'
+import { exerciseMediaUrl } from '../utils/api'
 
 const exerciseVideoSources = {
   'dumbbell-bench-press': {
@@ -99,28 +100,44 @@ export default function WorkoutSession() {
 
   const exercises = plan.exercises
   const totalExercises = exercises.length
-  const currentPlanExercise = exercises[currentIndex]
+  const currentPlanExercise = exercises[currentIndex] || {}
 
-  // Merge with full exercise dataset if available
-  const fullExerciseData = getExerciseById(currentPlanExercise.id)
+  // Merge with full exercise dataset if available, strictly prioritizing MongoDB data
+  const fullExerciseData = getExerciseById(currentPlanExercise.id) || {}
   const currentExercise = {
+    ...fullExerciseData,
     ...currentPlanExercise,
-    ...(fullExerciseData || {}),
+    media: {
+      ...(fullExerciseData.media || {}),
+      ...(currentPlanExercise.media || {}),
+      videos: {
+        ...(fullExerciseData.media?.videos || {}),
+        ...(currentPlanExercise.media?.videos || {}),
+      },
+    },
     primaryMuscles:
-      fullExerciseData?.primaryMuscles || currentPlanExercise.primaryMuscles || ['Pectoralis Major'],
+      currentPlanExercise.primaryMuscles && currentPlanExercise.primaryMuscles.length > 0
+        ? currentPlanExercise.primaryMuscles
+        : (fullExerciseData.primaryMuscles || ['Pectoralis Major']),
     secondaryMuscles:
-      fullExerciseData?.secondaryMuscles ||
-      currentPlanExercise.secondaryMuscles || ['Anterior Deltoid', 'Triceps Brachii'],
+      currentPlanExercise.secondaryMuscles && currentPlanExercise.secondaryMuscles.length > 0
+        ? currentPlanExercise.secondaryMuscles
+        : (fullExerciseData.secondaryMuscles || ['Anterior Deltoid', 'Triceps Brachii']),
   }
 
   const isCurrentCompleted = completedIndices.has(currentIndex)
   const isLastExercise = currentIndex === totalExercises - 1
 
-  // Determine video availability
-  const hasExerciseVideo = Boolean(exerciseVideoSources[currentExercise.id])
-  const currentVideoSource = hasExerciseVideo
-    ? exerciseVideoSources[currentExercise.id][cameraAngle]
-    : undefined
+  // Determine video availability: check MongoDB media.videos first, then fallback to static sources
+  const exerciseVideos = currentExercise.media?.videos || {}
+  const rawVideo =
+    exerciseVideos[cameraAngle] ||
+    exerciseVideos.front ||
+    exerciseVideoSources[currentExercise.id]?.[cameraAngle] ||
+    exerciseVideoSources[currentExercise.id]?.front
+
+  const hasExerciseVideo = Boolean(rawVideo)
+  const currentVideoSource = rawVideo ? exerciseMediaUrl(rawVideo) : undefined
 
   const saveWorkout = async (completedSet) => {
     if (hasRecordedHistory.current) return

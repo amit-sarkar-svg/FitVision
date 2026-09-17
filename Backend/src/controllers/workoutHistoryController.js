@@ -110,24 +110,18 @@ const createWorkoutHistory = async (req, res, next) => {
     let resolvedWorkoutName = (workoutName || planName || '').trim();
     let validatedPlanDoc = null;
 
-    // Validate workout plan reference if provided
+    // Validate workout plan reference if provided (graceful if deleted or not found)
     if (targetPlanId) {
-      if (!mongoose.isValidObjectId(targetPlanId)) {
-        return res.status(400).json({ success: false, message: 'Invalid workout plan ID format.' });
-      }
-
-      validatedPlanDoc = await WorkoutPlan.findOne({ _id: targetPlanId, user: req.user.id });
-      if (!validatedPlanDoc) {
-        return res.status(404).json({ success: false, message: 'Workout plan not found.' });
-      }
-
-      if (!resolvedWorkoutName) {
-        resolvedWorkoutName = validatedPlanDoc.name;
+      if (mongoose.isValidObjectId(targetPlanId)) {
+        validatedPlanDoc = await WorkoutPlan.findOne({ _id: targetPlanId, user: req.user.id });
+        if (validatedPlanDoc && !resolvedWorkoutName) {
+          resolvedWorkoutName = validatedPlanDoc.name;
+        }
       }
     }
 
     if (!resolvedWorkoutName) {
-      return res.status(400).json({ success: false, message: 'Workout name is required.' });
+      resolvedWorkoutName = 'Workout Session';
     }
 
     // Resolve exercises list if provided

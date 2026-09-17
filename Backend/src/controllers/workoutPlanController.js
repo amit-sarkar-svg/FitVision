@@ -11,7 +11,7 @@ async function populateAndSerialise(planDoc) {
   await planDoc.populate({
     path: 'exercises.exercise',
     model: 'Exercise',
-    select: 'id name category difficulty cover primaryMuscles secondaryMuscles media',
+    select: 'id name category difficulty cover primaryMuscles secondaryMuscles media tips instructions description',
   });
 
   return serialisePlan(planDoc);
@@ -27,6 +27,9 @@ function serialisePlan(planDoc) {
       name: ex.name,
       category: ex.category,
       difficulty: ex.difficulty,
+      description: ex.description || '',
+      tips: ex.tips || '',
+      instructions: ex.instructions || [],
       cover: ex.cover || null,
       media: ex.media || {},
       primaryMuscles: ex.primaryMuscles || [],
