@@ -88,6 +88,14 @@ Favorites API (Bearer token required, strictly scoped to authenticated user):
 - `POST /api/favorites/:exerciseId` — Add an exercise to current user's favorites
 - `DELETE /api/favorites/:exerciseId` — Remove an exercise from current user's favorites
 
+Workout History & Progress API (Bearer token required, strictly scoped to authenticated user):
+
+- `GET /api/workout-history` — Get all completed workout history belonging to current user
+- `POST /api/workout-history` — Record a completed workout session (`{ workoutPlanId, workoutName, exercises, duration }`)
+- `GET /api/workout-history/:id` — Get specific workout history record by ID
+- `DELETE /api/workout-history/:id` — Delete a workout history record
+- `GET /api/progress` — Get calculated user progress statistics (total workouts, total exercises, workouts this week, weekly activity, recent history)
+
 Admin API (Bearer token with `admin` role required):
 
 - `GET /api/admin/exercises`
@@ -126,6 +134,30 @@ Every workout plan operation derives user ownership directly from the verified J
 ```
 
 Compound index: `{ user: 1, exercise: 1 }` with `{ unique: true }` prevents duplicate favorites. All operations strictly isolate user favorites using `req.user.id`.
+
+## WorkoutHistory MongoDB Model
+
+```javascript
+{
+  user: ObjectId -> User (required, indexed),
+  workoutPlan: ObjectId -> WorkoutPlan (optional reference),
+  workoutName: String (required, trimmed),
+  exercises: [
+    {
+      exercise: ObjectId -> Exercise,
+      exerciseName: String,
+      completed: Boolean
+    }
+  ],
+  totalExercises: Number (required),
+  completedExercises: Number (required),
+  duration: Number (in seconds),
+  completedAt: Date (indexed),
+  timestamps: true
+}
+```
+
+Compound index: `{ user: 1, completedAt: -1 }` enables fast retrieval of recent workout history and weekly progress metrics. All operations derive user ownership from JWT (`req.user.id`).
 
 ## Exercise media
 

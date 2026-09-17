@@ -26,17 +26,48 @@ import {
 } from '../utils/workoutHistory'
 
 export default function ProgressTracker() {
-  const { history, clearHistory } = useWorkout()
+  const {
+    history,
+    historyLoading,
+    historyError,
+    progress,
+    progressLoading,
+    progressError,
+    reloadHistory,
+  } = useWorkout()
   const [showAll, setShowAll] = useState(false)
 
-  // Compute statistics & weekly activity from current history
-  const stats = useMemo(() => getWorkoutStatistics(history), [history])
-  const weeklyActivity = useMemo(() => getWeeklyActivity(history), [history])
+  // Compute statistics & weekly activity from backend progress or fallback
+  const stats = useMemo(() => {
+    if (progress && progress.stats) {
+      return progress.stats
+    }
+    return getWorkoutStatistics(history)
+  }, [progress, history])
+
+  const weeklyActivity = useMemo(() => {
+    if (progress && progress.weeklyActivity && progress.weeklyActivity.length === 7) {
+      return progress.weeklyActivity
+    }
+    return getWeeklyActivity(history)
+  }, [progress, history])
 
   const visibleHistory = useMemo(() => {
     if (showAll) return history
     return history.slice(0, 5)
   }, [history, showAll])
+
+  const isLoading = (progressLoading || historyLoading) && history.length === 0
+  const errorMessage = progressError || historyError
+
+  if (isLoading) {
+    return (
+      <div className="p-4 lg:p-6 max-w-6xl mx-auto flex flex-col items-center justify-center py-24">
+        <div className="w-10 h-10 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+        <p className="text-sm text-gray-400">Loading your progress & workout history…</p>
+      </div>
+    )
+  }
 
   return (
     <div className="p-4 lg:p-6 max-w-6xl mx-auto space-y-6">
@@ -65,6 +96,15 @@ export default function ProgressTracker() {
           </div>
         )}
       </div>
+
+      {errorMessage && (
+        <div className="bg-amber-500/10 border border-amber-500/30 text-amber-300 p-4 rounded-xl flex items-center justify-between">
+          <p className="text-sm">{errorMessage}</p>
+          <Button variant="secondary" size="sm" onClick={() => reloadHistory()}>
+            Retry
+          </Button>
+        </div>
+      )}
 
       {/* Main Content: If no history, show empty state */}
       {history.length === 0 ? (
@@ -253,7 +293,7 @@ export default function ProgressTracker() {
                               Completed
                             </Badge>
                           </div>
-                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400">
+                          <div className="flex items-center gap-3 mt-1 text-xs text-gray-400 flex-wrap">
                             <span className="flex items-center gap-1">
                               <Calendar className="w-3.5 h-3.5 text-gray-500" />
                               {formatWorkoutDate(workout.completedAt)}
@@ -262,6 +302,15 @@ export default function ProgressTracker() {
                             <span className="text-gray-300 font-medium">
                               {workout.exercisesCompleted} / {workout.totalExercises || workout.exercisesCompleted} {workout.totalExercises === 1 ? 'Exercise' : 'Exercises'}
                             </span>
+                            {workout.duration > 0 && (
+                              <>
+                                <span className="text-gray-600">•</span>
+                                <span className="flex items-center gap-1 text-gray-400">
+                                  <Clock className="w-3.5 h-3.5 text-gray-500" />
+                                  {Math.floor(workout.duration / 60)}m {workout.duration % 60}s
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>

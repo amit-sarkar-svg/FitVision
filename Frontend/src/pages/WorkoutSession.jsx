@@ -42,7 +42,11 @@ export default function WorkoutSession() {
   const [completedIndices, setCompletedIndices] = useState(new Set())
   const [isFinished, setIsFinished] = useState(false)
   const [isExitModalOpen, setIsExitModalOpen] = useState(false)
+  const [isSavingHistory, setIsSavingHistory] = useState(false)
+  const [saveHistoryError, setSaveHistoryError] = useState(null)
+  const [sessionDuration, setSessionDuration] = useState(0)
   const hasRecordedHistory = useRef(false)
+  const sessionStartTime = useRef(Date.now())
 
   // Video & viewer player state
   const [cameraAngle, setCameraAngle] = useState('front')
@@ -118,6 +122,42 @@ export default function WorkoutSession() {
     ? exerciseVideoSources[currentExercise.id][cameraAngle]
     : undefined
 
+  const saveWorkout = async (completedSet) => {
+    if (hasRecordedHistory.current) return
+    hasRecordedHistory.current = true
+    setIsSavingHistory(true)
+    setSaveHistoryError(null)
+
+    const elapsed = Math.max(1, Math.round((Date.now() - sessionStartTime.current) / 1000))
+    setSessionDuration(elapsed)
+
+    const payload = {
+      workoutPlanId: plan._id || plan.id,
+      planId: plan._id || plan.id,
+      workoutName: plan.name,
+      planName: plan.name,
+      exercises: exercises.map((ex, idx) => ({
+        exerciseId: ex._id || ex.id,
+        exerciseName: ex.name,
+        completed: completedSet.has(idx),
+      })),
+      exercisesCompleted: completedSet.size,
+      totalExercises: totalExercises,
+      duration: elapsed,
+    }
+
+    try {
+      const res = await recordWorkoutCompletion(payload)
+      if (!res || !res.success) {
+        setSaveHistoryError(res?.error || 'Failed to sync workout to server.')
+      }
+    } catch (err) {
+      setSaveHistoryError(err.message || 'Failed to sync workout to server.')
+    } finally {
+      setIsSavingHistory(false)
+    }
+  }
+
   const handleCompleteCurrent = () => {
     const nextCompleted = new Set(completedIndices)
     nextCompleted.add(currentIndex)
@@ -127,16 +167,7 @@ export default function WorkoutSession() {
       setCurrentIndex((prev) => prev + 1)
     } else {
       setIsFinished(true)
-      // Record workout history with duplicate protection
-      if (!hasRecordedHistory.current) {
-        hasRecordedHistory.current = true
-        recordWorkoutCompletion({
-          planId: plan.id,
-          planName: plan.name,
-          exercisesCompleted: nextCompleted.size,
-          totalExercises: totalExercises,
-        })
-      }
+      saveWorkout(nextCompleted)
     }
   }
 
@@ -145,15 +176,7 @@ export default function WorkoutSession() {
       setCurrentIndex((prev) => prev + 1)
     } else {
       setIsFinished(true)
-      if (!hasRecordedHistory.current) {
-        hasRecordedHistory.current = true
-        recordWorkoutCompletion({
-          planId: plan.id,
-          planName: plan.name,
-          exercisesCompleted: completedIndices.size,
-          totalExercises: totalExercises,
-        })
-      }
+      saveWorkout(completedIndices)
     }
   }
 
@@ -169,6 +192,9 @@ export default function WorkoutSession() {
     setIsFinished(false)
     setCameraAngle('front')
     hasRecordedHistory.current = false
+    setIsSavingHistory(false)
+    setSaveHistoryError(null)
+    sessionStartTime.current = Date.now()
   }
 
   const handleExitClick = () => {
@@ -206,7 +232,7 @@ export default function WorkoutSession() {
               {plan.name}
             </p>
 
-            <div className="bg-surface/80 border border-surface-border rounded-xl p-4 mb-6 grid grid-cols-2 gap-4">
+            <div className="bg-surface/80 border border-surface-border rounded-xl p-4 mb-4 grid grid-cols-2 sm:grid-cols-3 gap-4">
               <div className="text-center border-r border-surface-border pr-2">
                 <p className="text-xs text-gray-400">Exercises Completed</p>
                 <p className="text-xl font-bold text-accent mt-1 flex items-center justify-center gap-1.5">
@@ -214,11 +240,30 @@ export default function WorkoutSession() {
                   {completedIndices.size} / {totalExercises}
                 </p>
               </div>
-              <div className="text-center pl-2">
-                <p className="text-xs text-gray-400">Completion Status</p>
-                <p className="text-xl font-bold text-white mt-1">100%</p>
+              <div className="text-center sm:border-r sm:border-surface-border pr-2">
+                <p className="text-xs text-gray-400">Duration</p>
+                <p className="text-xl font-bold text-white mt-1">
+                  {Math.floor(sessionDuration / 60)}m {sessionDuration % 60}s
+                </p>
+              </div>
+              <div className="text-center pl-2 col-span-2 sm:col-span-1 border-t sm:border-t-0 pt-2 sm:pt-0">
+                <p className="text-xs text-gray-400">Completion</p>
+                <p className="text-xl font-bold text-white mt-1">
+                  {Math.round((completedIndices.size / totalExercises) * 100)}%
+                </p>
               </div>
             </div>
+
+            {isSavingHistory && (
+              <p className="text-xs text-accent animate-pulse mb-4">
+                Saving workout to your history...
+              </p>
+            )}
+            {saveHistoryError && (
+              <p className="text-xs text-amber-400 mb-4">
+                {saveHistoryError}
+              </p>
+            )}
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Button

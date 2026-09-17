@@ -6,6 +6,8 @@ const authRoutes = require('./routes/authRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const workoutPlanRoutes = require('./routes/workoutPlanRoutes');
 const favoriteRoutes = require('./routes/favoriteRoutes');
+const workoutHistoryRoutes = require('./routes/workoutHistoryRoutes');
+const progressRoutes = require('./routes/progressRoutes');
 
 const app = express();
 
@@ -25,6 +27,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/workout-plans', workoutPlanRoutes);
 app.use('/api/favorites', favoriteRoutes);
+app.use('/api/workout-history', workoutHistoryRoutes);
+app.use('/api/progress', progressRoutes);
 
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {

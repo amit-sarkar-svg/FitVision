@@ -9,17 +9,16 @@ import {
   fetchPlanById,
 } from '../utils/workoutPlanApi'
 import {
-  getWorkoutHistory,
-  saveCompletedWorkout as saveCompletedWorkoutStorage,
-  clearWorkoutHistory as clearWorkoutHistoryStorage,
-  getWorkoutStatistics,
-  getWeeklyActivity,
-} from '../utils/workoutHistory'
-import {
   fetchFavoritesApi,
   addFavoriteApi,
   removeFavoriteApi,
 } from '../utils/favoriteApi'
+import {
+  fetchWorkoutHistory,
+  fetchProgress,
+  createWorkoutHistoryApi,
+  deleteWorkoutHistoryApi,
+} from '../utils/workoutHistoryApi'
 import { useAuth } from './AuthContext'
 import Toast from '../components/UI/Toast'
 
@@ -28,15 +27,20 @@ const WorkoutContext = createContext(null)
 export function WorkoutProvider({ children }) {
   const { isAuthenticated, authorizedRequest } = useAuth()
 
-  // Plans state — now driven by the API
+  // Plans state — driven by the API
   const [plans, setPlans] = useState([])
   const [plansLoading, setPlansLoading] = useState(false)
   const [plansError, setPlansError] = useState(null)
 
-  // History — remains localStorage-based (out of scope)
-  const [history, setHistory] = useState(() => getWorkoutHistory())
+  // History & Progress state — now driven by MongoDB API
+  const [history, setHistory] = useState([])
+  const [historyLoading, setHistoryLoading] = useState(false)
+  const [historyError, setHistoryError] = useState(null)
+  const [progress, setProgress] = useState(null)
+  const [progressLoading, setProgressLoading] = useState(false)
+  const [progressError, setProgressError] = useState(null)
   
-  // Favorites state — now driven by MongoDB API
+  // Favorites state — driven by MongoDB API
   const [favorites, setFavorites] = useState([])
   const [favoritesLoading, setFavoritesLoading] = useState(false)
   const [favoritesError, setFavoritesError] = useState(null)
@@ -134,26 +138,68 @@ export function WorkoutProvider({ children }) {
     return plans.find((p) => p.id === planId) || null
   }, [plans])
 
-  // ────────────────────── History (localStorage — unchanged) ──────────────────────
-  const reloadHistory = useCallback(() => {
-    setHistory(getWorkoutHistory())
+  // ────────────────────── History & Progress (API) ──────────────────────
+  const reloadHistory = useCallback(async () => {
+    if (!authReqRef.current) return
+    setHistoryLoading(true)
+    setProgressLoading(true)
+    setHistoryError(null)
+    setProgressError(null)
+    try {
+      const [histData, progData] = await Promise.all([
+        fetchWorkoutHistory(authReqRef.current),
+        fetchProgress(authReqRef.current),
+      ])
+      setHistory(histData)
+      setProgress(progData)
+    } catch (err) {
+      console.error('Failed to fetch history/progress:', err)
+      setHistoryError(err.message || 'Failed to load workout history.')
+      setProgressError(err.message || 'Failed to load workout progress.')
+    } finally {
+      setHistoryLoading(false)
+      setProgressLoading(false)
+    }
   }, [])
 
-  const recordWorkoutCompletion = useCallback((workoutData) => {
-    const res = saveCompletedWorkoutStorage(workoutData)
-    if (res.success) {
-      reloadHistory()
+  const recordWorkoutCompletion = useCallback(async (workoutData) => {
+    try {
+      if (!authReqRef.current) {
+        return { success: false, error: 'User is not authenticated.' }
+      }
+      const savedRecord = await createWorkoutHistoryApi(authReqRef.current, workoutData)
+      setHistory((prev) => [savedRecord, ...prev])
+      try {
+        const updatedProg = await fetchProgress(authReqRef.current)
+        setProgress(updatedProg)
+      } catch (err) {
+        console.warn('Could not refresh progress immediately:', err)
+      }
+      return { success: true, record: savedRecord }
+    } catch (err) {
+      console.error('Failed to save workout history:', err)
+      return { success: false, error: err.message || 'Failed to save workout history.' }
     }
-    return res
-  }, [reloadHistory])
+  }, [])
 
-  const clearHistory = useCallback(() => {
-    const res = clearWorkoutHistoryStorage()
-    if (res) {
-      reloadHistory()
+  const clearHistory = useCallback(async () => {
+    try {
+      if (history.length > 0 && authReqRef.current) {
+        await Promise.all(
+          history.map((h) => deleteWorkoutHistoryApi(authReqRef.current, h.id || h._id))
+        )
+      }
+      setHistory([])
+      if (authReqRef.current) {
+        const progData = await fetchProgress(authReqRef.current)
+        setProgress(progData)
+      }
+      return { success: true }
+    } catch (err) {
+      console.error('Failed to clear workout history:', err)
+      return { success: false, error: err.message || 'Failed to clear workout history.' }
     }
-    return res
-  }, [reloadHistory])
+  }, [history])
 
   // ────────────────────── Favorites (API) ──────────────────────
   const reloadFavorites = useCallback(async () => {
@@ -171,19 +217,24 @@ export function WorkoutProvider({ children }) {
     }
   }, [])
 
-  // Sync plans & favorites with authentication state
+  // Sync plans, favorites & history with authentication state
   useEffect(() => {
     if (isAuthenticated) {
       reloadPlans()
       reloadFavorites()
+      reloadHistory()
     } else {
-      // Clear plans & favorites when logged out
+      // Clear state when logged out
       setPlans([])
       setPlansError(null)
       setFavorites([])
       setFavoritesError(null)
+      setHistory([])
+      setHistoryError(null)
+      setProgress(null)
+      setProgressError(null)
     }
-  }, [isAuthenticated, reloadPlans, reloadFavorites])
+  }, [isAuthenticated, reloadPlans, reloadFavorites, reloadHistory])
 
   const isFavorite = useCallback((exerciseId) => {
     if (!exerciseId) return false
@@ -235,22 +286,6 @@ export function WorkoutProvider({ children }) {
     }
   }, [isFavorite, addFavorite, removeFavorite])
 
-  // Keep localStorage-based event listeners for History (out of scope)
-  useEffect(() => {
-    const handleHistoryUpdate = () => reloadHistory()
-    const handleStorageUpdate = (e) => {
-      if (e.key === 'fitvision_workout_history') reloadHistory()
-    }
-
-    window.addEventListener('fitvision:history-updated', handleHistoryUpdate)
-    window.addEventListener('storage', handleStorageUpdate)
-
-    return () => {
-      window.removeEventListener('fitvision:history-updated', handleHistoryUpdate)
-      window.removeEventListener('storage', handleStorageUpdate)
-    }
-  }, [reloadHistory])
-
   return (
     <WorkoutContext.Provider
       value={{
@@ -258,6 +293,11 @@ export function WorkoutProvider({ children }) {
         plansLoading,
         plansError,
         history,
+        historyLoading,
+        historyError,
+        progress,
+        progressLoading,
+        progressError,
         favorites,
         favoritesLoading,
         favoritesError,
