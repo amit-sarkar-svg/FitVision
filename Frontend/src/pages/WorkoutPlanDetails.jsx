@@ -113,10 +113,10 @@ export default function WorkoutPlanDetails() {
           </div>
 
           <div className="flex items-center gap-3 shrink-0">
-            <Link to="/exercises">
+            <Link to={`/exercises?planId=${plan.id}`}>
               <Button variant="secondary" size="md">
                 <Plus className="w-4 h-4" />
-                Add More Exercises
+                Add Exercise
               </Button>
             </Link>
 
@@ -141,6 +141,14 @@ export default function WorkoutPlanDetails() {
           <h2 className="text-sm font-bold uppercase tracking-wider text-gray-400">
             Exercises in this routine ({exercises.length})
           </h2>
+          {exercises.length > 0 && (
+            <Link to={`/exercises?planId=${plan.id}`}>
+              <Button variant="ghost" size="sm" className="text-accent hover:text-accent text-xs">
+                <Plus className="w-3.5 h-3.5" />
+                Add Exercise
+              </Button>
+            </Link>
+          )}
         </div>
 
         {exercises.length === 0 ? (
@@ -148,12 +156,12 @@ export default function WorkoutPlanDetails() {
             <Dumbbell className="w-10 h-10 text-gray-600 mx-auto mb-2" />
             <h3 className="text-base font-semibold text-white mb-1">No exercises in this plan</h3>
             <p className="text-xs text-gray-400 mb-4 max-w-sm mx-auto">
-              Browse the exercise library and click "Add to Plan" to build your workout.
+              Browse the exercise library and select exercises to build your workout.
             </p>
-            <Link to="/exercises">
+            <Link to={`/exercises?planId=${plan.id}`}>
               <Button variant="primary" size="md">
                 <Plus className="w-4 h-4" />
-                Browse Exercises
+                Add Exercise
               </Button>
             </Link>
           </Card>

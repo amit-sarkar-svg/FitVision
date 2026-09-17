@@ -4,6 +4,7 @@ import {
   createPlanApi,
   deletePlanApi,
   addExerciseApi,
+  addExercisesBatchApi,
   removeExerciseApi,
   fetchPlanById,
 } from '../utils/workoutPlanApi'
@@ -114,6 +115,17 @@ export function WorkoutProvider({ children }) {
     }
   }, [])
 
+  const addExercises = useCallback(async (planId, exercisesToAdd) => {
+    try {
+      const exerciseIds = exercisesToAdd.map((e) => e._id || e.id)
+      const updatedPlan = await addExercisesBatchApi(authReqRef.current, planId, exerciseIds)
+      setPlans((prev) => prev.map((p) => (p.id === planId ? updatedPlan : p)))
+      return { success: true, plan: updatedPlan }
+    } catch (err) {
+      return { success: false, error: err.message || 'Failed to add exercises.' }
+    }
+  }, [])
+
   const removeExercise = useCallback(async (planId, exerciseId) => {
     try {
       const updatedPlan = await removeExerciseApi(authReqRef.current, planId, exerciseId)
@@ -214,6 +226,7 @@ export function WorkoutProvider({ children }) {
         createPlan,
         deletePlan,
         addExercise,
+        addExercises,
         removeExercise,
         getPlanById,
         recordWorkoutCompletion,

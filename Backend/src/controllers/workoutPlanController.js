@@ -164,23 +164,11 @@ const addExerciseToPlan = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Workout plan not found.' });
     }
 
-    const { exerciseId } = req.body;
+    const { exerciseId, exerciseIds } = req.body;
+    const rawIds = Array.isArray(exerciseIds) ? exerciseIds : (exerciseId ? [exerciseId] : []);
 
-    if (!exerciseId) {
-      return res.status(400).json({ success: false, message: 'exerciseId is required.' });
-    }
-
-    // Verify exercise exists in DB (support ObjectId or slug id)
-    let exercise = null;
-    if (mongoose.isValidObjectId(exerciseId)) {
-      exercise = await Exercise.findById(exerciseId);
-    }
-    if (!exercise) {
-      exercise = await Exercise.findOne({ id: exerciseId });
-    }
-
-    if (!exercise) {
-      return res.status(404).json({ success: false, message: 'Exercise not found.' });
+    if (rawIds.length === 0) {
+      return res.status(400).json({ success: false, message: 'exerciseId or exerciseIds is required.' });
     }
 
     const plan = await WorkoutPlan.findOne({ _id: req.params.id, user: req.user.id });
@@ -189,20 +177,62 @@ const addExerciseToPlan = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Workout plan not found.' });
     }
 
-    // Prevent duplicates
-    const alreadyAdded = plan.exercises.some(
-      (entry) => entry.exercise.toString() === exercise._id.toString(),
-    );
-    if (alreadyAdded) {
-      return res.status(409).json({ success: false, message: 'Exercise is already in this plan.' });
+    // Single exercise mode: preserve strict 409 duplicate check
+    if (!Array.isArray(exerciseIds)) {
+      const singleId = rawIds[0];
+      let exercise = null;
+      if (mongoose.isValidObjectId(singleId)) {
+        exercise = await Exercise.findById(singleId);
+      }
+      if (!exercise) {
+        exercise = await Exercise.findOne({ id: singleId });
+      }
+
+      if (!exercise) {
+        return res.status(404).json({ success: false, message: 'Exercise not found.' });
+      }
+
+      const alreadyAdded = plan.exercises.some(
+        (entry) => entry.exercise.toString() === exercise._id.toString(),
+      );
+      if (alreadyAdded) {
+        return res.status(409).json({ success: false, message: 'Exercise is already in this plan.' });
+      }
+
+      const order = plan.exercises.length;
+      plan.exercises.push({ exercise: exercise._id, order });
+      await plan.save();
+
+      const serialised = await populateAndSerialise(plan);
+      return res.status(201).json({ success: true, data: serialised });
     }
 
-    const order = plan.exercises.length;
-    plan.exercises.push({ exercise: exercise._id, order });
-    await plan.save();
+    // Batch mode: add multiple exercises in sequence
+    let addedCount = 0;
+    for (const exId of rawIds) {
+      let exercise = null;
+      if (mongoose.isValidObjectId(exId)) {
+        exercise = await Exercise.findById(exId);
+      }
+      if (!exercise) {
+        exercise = await Exercise.findOne({ id: exId });
+      }
+      if (!exercise) continue;
+
+      const alreadyAdded = plan.exercises.some(
+        (entry) => entry.exercise.toString() === exercise._id.toString(),
+      );
+      if (alreadyAdded) continue;
+
+      plan.exercises.push({ exercise: exercise._id, order: plan.exercises.length });
+      addedCount++;
+    }
+
+    if (addedCount > 0) {
+      await plan.save();
+    }
 
     const serialised = await populateAndSerialise(plan);
-
     return res.status(201).json({ success: true, data: serialised });
   } catch (error) {
     return next(error);

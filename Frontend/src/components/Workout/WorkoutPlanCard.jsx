@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Play, Eye, Trash2, Dumbbell, Calendar } from 'lucide-react'
+import { Play, Eye, Trash2, Dumbbell, Calendar, Plus } from 'lucide-react'
 import Card from '../UI/Card'
 import Button from '../UI/Button'
 import Badge from '../UI/Badge'
@@ -77,20 +77,29 @@ export default function WorkoutPlanCard({ plan, onDeleteClick, index = 0 }) {
             </Button>
           </Link>
 
-          <Link
-            to={exerciseCount > 0 ? `/workout-plans/${plan.id}/session` : `/workout-plans/${plan.id}`}
-            className="w-full"
-          >
-            <Button
-              variant="primary"
-              size="md"
-              disabled={exerciseCount === 0}
-              className="w-full text-xs shadow-none hover:shadow-glow"
-            >
-              <Play className="w-3.5 h-3.5 fill-current" />
-              Start Workout
-            </Button>
-          </Link>
+          {exerciseCount === 0 ? (
+            <Link to={`/exercises?planId=${plan.id}`} className="w-full">
+              <Button
+                variant="primary"
+                size="md"
+                className="w-full text-xs shadow-none hover:shadow-glow"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                Add Exercise
+              </Button>
+            </Link>
+          ) : (
+            <Link to={`/workout-plans/${plan.id}/session`} className="w-full">
+              <Button
+                variant="primary"
+                size="md"
+                className="w-full text-xs shadow-none hover:shadow-glow"
+              >
+                <Play className="w-3.5 h-3.5 fill-current" />
+                Start Workout
+              </Button>
+            </Link>
+          )}
         </div>
       </Card>
     </motion.div>

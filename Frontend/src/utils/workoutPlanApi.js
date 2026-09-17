@@ -57,6 +57,16 @@ export async function addExerciseApi(authorizedRequest, planId, exerciseId) {
   return response.data
 }
 
+// POST /api/workout-plans/:id/exercises (batch mode)
+export async function addExercisesBatchApi(authorizedRequest, planId, exerciseIds) {
+  const response = await authorizedRequest(`/workout-plans/${planId}/exercises`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ exerciseIds }),
+  })
+  return response.data
+}
+
 // DELETE /api/workout-plans/:id/exercises/:exerciseId
 export async function removeExerciseApi(authorizedRequest, planId, exerciseId) {
   const response = await authorizedRequest(`/workout-plans/${planId}/exercises/${exerciseId}`, {
